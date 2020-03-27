@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/internal/client"
 	"github.com/spf13/cobra"
 )
@@ -15,14 +16,15 @@ func Register(root *cobra.Command) {
 			Short:                      "Runs the client",
 			Run: func(cmd *cobra.Command, args []string) {
 				fmt.Println("Hello from client")
-				c := client.New()
+				client := client.New()
+				c := config.ReadClient()
 				ladder := net.TCPAddr{
-					IP:   net.IP{127,0,0,1},
-					Port: 8080,
+					IP:   net.IP{byte(c.First),byte(c.Second),byte(c.Third),byte(c.Fourth)},
+					Port: c.Port,
 				}
-				c.Connect(&ladder)
-				c.WhoAmI()
-				c.ListClientIDs()
+				client.Connect(&ladder)
+				client.WhoAmI()
+				client.ListClientIDs()
 			},
 		})
 }

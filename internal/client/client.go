@@ -20,6 +20,7 @@ func New() *Client {
 	return &Client{conn:nil}
 }
 
+// Connect to the server using the given address
 func (cli *Client) Connect(serverAddr *net.TCPAddr) error {
 	c, err := net.Dial("tcp", serverAddr.String())
 	if err != nil {
@@ -41,7 +42,6 @@ func (cli *Client) Connect(serverAddr *net.TCPAddr) error {
 	//		return nil
 	//	}
 	//}
-	fmt.Println("TODO: Connect to the server using the given address")
 	return nil
 }
 
@@ -50,18 +50,18 @@ func (cli *Client) Close() error {
 	return nil
 }
 
+// Fetch the ID from the server
 func (cli *Client) WhoAmI() (uint64, error) {
-	fmt.Fprintf(cli.conn, "WhoAmI"+"\n")
+	_, err := fmt.Fprintf(cli.conn, "WhoAmI"+"\n")
 
-	message, _ := bufio.NewReader(cli.conn).ReadString('\n')
+	message, err := bufio.NewReader(cli.conn).ReadString('\n')
 	fmt.Print("->: " + message)
-	fmt.Println("TODO: Fetch the ID from the server")
-	u,_ := strconv.ParseUint(message, 10, 64)
-	return u, nil
+	u, err := strconv.ParseUint(message, 10, 64)
+	return u, err
 }
 
 func (cli *Client) ListClientIDs() ([]uint64, error) {
-	fmt.Fprintf(cli.conn, "ListClientIDs"+"\n")
+	_, err := fmt.Fprintf(cli.conn, "ListClientIDs"+"\n")
 
 	//buff := make([]uint64, 50)
 	//c := bufio.NewReader(cli.conn)
@@ -82,14 +82,13 @@ func (cli *Client) ListClientIDs() ([]uint64, error) {
 	//	fmt.Printf("received %x\n", buff[:int(size)])
 	//}
 
-	message, _ := bufio.NewReader(cli.conn).ReadString('\n')
+	message, err := bufio.NewReader(cli.conn).ReadString('\n')
 	fmt.Print("->: " + message)
-	fmt.Println("TODO: Fetch the ID from the server")
 	//u,_ := strconv.ParseUint(message, 10, 64)
 	//return u, nil
 
 	fmt.Println("TODO: Fetch the IDs from the server")
-	return nil, nil
+	return nil, err
 }
 
 func (cli *Client) SendMsg(recipients []uint64, body []byte) error {

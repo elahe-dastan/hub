@@ -20,6 +20,7 @@ func New() *Server {
 	}
 }
 
+// Start handling client connections and messages
 func (server *Server) Start(ladder *net.TCPAddr) error {
 	PORT := ":" + strconv.Itoa(ladder.Port)
 	l, err := net.Listen("tcp4", PORT)
@@ -38,8 +39,6 @@ func (server *Server) Start(ladder *net.TCPAddr) error {
 		server.assignID(c)
 		go server.handleConnection(c)
 	}
-	fmt.Println("TODO: Start handling client connections and messages")
-	return nil
 }
 
 //func handleConnection1(conn net.Conn) {
@@ -73,8 +72,11 @@ func (server *Server) Start(ladder *net.TCPAddr) error {
 
 func (server *Server) handleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
+	r := bufio.NewReader(c)
+	w := bufio.NewWriter(c)
+
 	for {
-		netData, err := bufio.NewReader(c).ReadString('\n')
+		netData, err := r.ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -86,18 +88,19 @@ func (server *Server) handleConnection(c net.Conn) {
 		}
 
 		if temp == "WhoAmI" {
-			c.Write([]byte(server.conn[c.RemoteAddr().String()] + "\n"))
+			w.WriteString(server.conn[c.RemoteAddr().String()] + "\n")
 		}
 
 		if temp == "ListClientIDs" {
 			all := server.ListClientIDs()
 
 			for _,element := range all{
-				c.Write([]byte(strconv.FormatUint(element, 10)))
+				w.WriteString(strconv.FormatUint(element, 10))
 			}
 
-			c.Write([]byte("\n"))
+			w.WriteString("\n")
 		}
+		w.Flush()
 	}
 	c.Close()
 }

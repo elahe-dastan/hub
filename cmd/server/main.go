@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/internal/server"
 	"github.com/spf13/cobra"
 )
@@ -16,8 +17,9 @@ func Register(root *cobra.Command)  {
 			Run: func(cmd *cobra.Command, args []string) {
 				fmt.Println("Hello from server")
 				s := server.New()
+				c := config.ReadServer()
 				ladder := net.TCPAddr{
-					Port: 8080,
+					Port: c.Port,
 				}
 				s.Start(&ladder)
 			},
