@@ -6,6 +6,8 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/elahe-dastan/applifier/message"
 )
 
 type Server struct {
@@ -30,6 +32,12 @@ func (server *Server) Start(ladder *net.TCPAddr) error {
 	}
 	defer l.Close()
 
+	tasks := make(chan net.Conn, 100)
+
+	for i := 0; i < 3; i++ {
+		go server.handleConnWorker(tasks)
+	}
+
 	for {
 		c, err := l.Accept()
 		if err != nil {
@@ -37,7 +45,7 @@ func (server *Server) Start(ladder *net.TCPAddr) error {
 			return err
 		}
 		server.assignID(c)
-		go server.handleConnection(c)
+		tasks <- c
 	}
 }
 
@@ -70,6 +78,12 @@ func (server *Server) Start(ladder *net.TCPAddr) error {
 //	handleConnection1(conn)
 //}
 
+func (server Server) handleConnWorker(tasks <-chan net.Conn)  {
+	for c := range tasks {
+		server.handleConnection(c)
+	}
+}
+
 func (server *Server) handleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
 	r := bufio.NewReader(c)
@@ -83,15 +97,15 @@ func (server *Server) handleConnection(c net.Conn) {
 		}
 
 		temp := strings.TrimSpace(netData)
-		if temp == "STOP" {
+		if temp == message.STOP {
 			break
 		}
 
-		if temp == "WhoAmI" {
+		if temp == message.WhoAmI {
 			w.WriteString(server.conn[c.RemoteAddr().String()] + "\n")
 		}
 
-		if temp == "ListClientIDs" {
+		if temp == message.ListClientIDs {
 			all := server.ListClientIDs()
 
 			for _,element := range all{

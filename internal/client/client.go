@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
+	"strings"
 )
 
 type IncomingMessage struct {
@@ -29,19 +31,19 @@ func (cli *Client) Connect(serverAddr *net.TCPAddr) error {
 	}
 
 	cli.conn = c
-	//for {
-	//	reader := bufio.NewReader(os.Stdin)
-	//	fmt.Print(">> ")
-	//	text, _ := reader.ReadString('\n')
-	//	fmt.Fprintf(c, text+"\n")
-	//
-	//	message, _ := bufio.NewReader(c).ReadString('\n')
-	//	fmt.Print("->: " + message)
-	//	if strings.TrimSpace(string(text)) == "STOP" {
-	//		fmt.Println("TCP client exiting...")
-	//		return nil
-	//	}
-	//}
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print(">> ")
+		text, _ := reader.ReadString('\n')
+		fmt.Fprintf(c, text+"\n")
+
+		message, _ := bufio.NewReader(c).ReadString('\n')
+		fmt.Print("->: " + message)
+		if strings.TrimSpace(string(text)) == "STOP" {
+			fmt.Println("TCP client exiting...")
+			return nil
+		}
+	}
 	return nil
 }
 
