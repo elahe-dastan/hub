@@ -9,11 +9,11 @@ import (
 )
 
 type ClientConfig struct {
-	First int `mapstructure:"first"`
+	First  int `mapstructure:"first"`
 	Second int `mapstructure:"second"`
-	Third int `mapstructure:"third"`
+	Third  int `mapstructure:"third"`
 	Fourth int `mapstructure:"fourth"`
-	Port int `mapstructure:"port"`
+	Port   int `mapstructure:"port"`
 }
 
 func ReadClient() ClientConfig {
