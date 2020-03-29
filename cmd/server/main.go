@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func Register(root *cobra.Command)  {
+func Register(root *cobra.Command) {
 	root.AddCommand(
 		&cobra.Command{
 			Use:   "server",
@@ -22,7 +22,7 @@ func Register(root *cobra.Command)  {
 				ladder := net.TCPAddr{
 					Port: c.Port,
 				}
-				if err := s.Start(&ladder);err != nil{
+				if err := s.Start(&ladder); err != nil {
 					log.Println(err)
 				}
 			},
