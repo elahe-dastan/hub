@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -135,6 +136,7 @@ func (server *Server) handleConnection(c net.Conn) {
 			log.Println(err)
 		}
 	}
+
 	if err := c.Close(); err != nil {
 		log.Println(err)
 	}
@@ -164,7 +166,7 @@ func (server *Server) assignID(c net.Conn) {
 	server.conn[c.RemoteAddr().String()] = strconv.Itoa(server.seq)
 }
 
-func disconnect(l net.Listener) {
+func disconnect(l io.Closer) {
 	if err := l.Close(); err != nil {
 		log.Println(err)
 	}

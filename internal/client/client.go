@@ -34,7 +34,9 @@ func (cli *Client) Connect(serverAddr string) error {
 
 	for {
 		reader := bufio.NewReader(os.Stdin)
+
 		fmt.Print(">> ")
+
 		text, _ := reader.ReadString('\n')
 
 		if _, err := fmt.Fprintf(c, text+"\n"); err != nil {
@@ -69,13 +71,15 @@ func (cli *Client) WhoAmI() (uint64, error) {
 	}
 
 	fmt.Print("->: " + message)
-	u, error := strconv.ParseUint(message, 10, 64)
+	u, err2 := strconv.ParseUint(message, 10, 64)
 
-	return u, error
+	return u, err2
 }
 
 func (cli *Client) ListClientIDs() ([]uint64, error) {
-	_, err := fmt.Fprintf(cli.conn, "ListClientIDs"+"\n")
+	if _, err := fmt.Fprintf(cli.conn, "ListClientIDs"+"\n"); err != nil {
+		return nil, err
+	}
 
 	//buff := make([]uint64, 50)
 	//c := bufio.NewReader(cli.conn)
@@ -102,6 +106,7 @@ func (cli *Client) ListClientIDs() ([]uint64, error) {
 	//return u, nil
 
 	fmt.Println("TODO: Fetch the IDs from the server")
+
 	return nil, err
 }
 
