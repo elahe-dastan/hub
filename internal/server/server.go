@@ -13,19 +13,21 @@ import (
 )
 
 type Server struct {
-	seq  int
-	conn map[string]string
+	seq     int
+	conn    map[net.Conn]string
+	running int
 }
 
 func New() *Server {
 	return &Server{
 		seq:  0,
-		conn: map[string]string{},
+		conn: map[net.Conn]string{},
 	}
 }
 
 // Start handling client connections and messages
 func (server *Server) Start(ladder *net.TCPAddr) error {
+	server.running = 1
 	PORT := ":" + strconv.Itoa(ladder.Port)
 	l, err := net.Listen("tcp4", PORT)
 
@@ -45,6 +47,11 @@ func (server *Server) Start(ladder *net.TCPAddr) error {
 	}
 
 	for {
+
+		if server.running == 0 {
+			return nil
+		}
+
 		c, err := l.Accept()
 
 		if err != nil {
@@ -98,38 +105,68 @@ func (server *Server) handleConnection(c net.Conn) {
 	w := bufio.NewWriter(c)
 
 	for {
-		netData, err := r.ReadString('\n')
+		netData, err := r.ReadString('\r')
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		temp := strings.TrimSpace(netData)
-		if temp == message.STOP {
-			break
-		}
+		arr := strings.Split(netData, "\n")
 
-		if temp == message.WhoAmI {
-			_, err := w.WriteString(server.conn[c.RemoteAddr().String()] + "\n")
+		temp := strings.TrimSpace(arr[0])
+
+		switch temp {
+		case message.STOP:
+			break
+		case message.WhoAmI:
+			_, err := w.WriteString(server.conn[c] + "\n")
 			if err != nil {
 				log.Println(err)
 			}
-		}
-
-		if temp == message.ListClientIDs {
+		case message.ListClientIDs:
 			all := server.ListClientIDs()
 
 			for _, element := range all {
-				_, err := w.WriteString(strconv.FormatUint(element, 10))
-				if err != nil {
-					log.Println(err)
+				clientID := strconv.FormatUint(element, 10)
+				if clientID != server.conn[c] {
+					_, err := w.WriteString(clientID + "\n")
+					if err != nil {
+						log.Println(err)
+					}
 				}
 			}
+		case message.SendMsg:
+			recipients, err := strconv.Atoi(arr[1])
+			body := arr[2]
 
-			_, err := w.WriteString("\n")
 			if err != nil {
 				log.Println(err)
 			}
+
+			recipientArr := make([]string, 0)
+
+			for {
+				recipientArr = append(recipientArr, fmt.Sprintf("%d", recipients%10))
+				recipients /= 10
+				if recipients == 0 {
+					break
+				}
+			}
+
+			for k, v := range server.conn {
+				for _, r := range recipientArr {
+					if v == r {
+						if _, err = bufio.NewWriter(k).WriteString(body); err != nil {
+							log.Println(err)
+						}
+					}
+				}
+			}
+		}
+
+		_, err = w.WriteString("\r")
+		if err != nil {
+			log.Println(err)
 		}
 
 		if err := w.Flush(); err != nil {
@@ -142,28 +179,36 @@ func (server *Server) handleConnection(c net.Conn) {
 	}
 }
 
+// Return the IDs of the connected clients
 func (server *Server) ListClientIDs() []uint64 {
-	result := make([]uint64, len(server.conn))
+	result := make([]uint64, 0)
 
 	for _, element := range server.conn {
 		r, _ := strconv.ParseUint(element, 10, 64)
 		result = append(result, r)
 	}
 
-	fmt.Println("TODO: Return the IDs of the connected clients")
-
 	return result
 }
 
+// Stop accepting connections and close the existing ones
 func (server *Server) Stop() error {
-	fmt.Println("TODO: Stop accepting connections and close the existing ones")
+	server.running = 0
+
+	for conn, _ := range server.conn {
+		if err := conn.Close(); err != nil {
+			log.Println(err)
+		}
+	}
+
+	server.conn = map[net.Conn]string{}
 
 	return nil
 }
 
 func (server *Server) assignID(c net.Conn) {
 	server.seq++
-	server.conn[c.RemoteAddr().String()] = strconv.Itoa(server.seq)
+	server.conn[c] = strconv.Itoa(server.seq)
 }
 
 func disconnect(l io.Closer) {

@@ -38,34 +38,65 @@ func (cli *Client) Connect(serverAddr string) error {
 		fmt.Print(">> ")
 
 		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
 
-		if _, err := fmt.Fprintf(c, text+"\n"); err != nil {
-			return err
-		}
+		switch text {
+		case "STOP":
+			return cli.Close()
+		case "Who":
+			if _, err2 := cli.WhoAmI(); err2 != nil {
+				return err2
+			}
+		case "List":
+			if _, err2 := cli.ListClientIDs(); err2 != nil {
+				return err2
+			}
+		case "Send":
+			recipients := make([]uint64, 0)
 
-		message, _ := bufio.NewReader(c).ReadString('\n')
-		fmt.Print("->: " + message)
+			for {
+				fmt.Println("Enter the next client")
+				t, _ := reader.ReadString('\n')
+				t = strings.TrimSuffix(t, "\n")
 
-		if strings.TrimSpace(text) == "STOP" {
-			fmt.Println("TCP client exiting...")
+				if t == "END" {
+					break
+				}
 
-			return nil
+				c, _ := strconv.ParseUint(t, 10, 64)
+				recipients = append(recipients, c)
+
+			}
+
+			fmt.Println("Enter the body")
+
+			b, _ := reader.ReadString('\n')
+
+			if err2 := cli.SendMsg(recipients, []byte(b)); err2 != nil {
+				return err2
+			}
 		}
 	}
 }
 
+// Close the connection to the server
 func (cli *Client) Close() error {
-	fmt.Println("TODO: Close the connection to the server")
+	fmt.Println("TCP client exiting...")
+
+	if _, err := fmt.Fprintf(cli.conn, "STOP\r"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Fetch the ID from the server
 func (cli *Client) WhoAmI() (uint64, error) {
-	if _, err := fmt.Fprintf(cli.conn, "WhoAmI"+"\n"); err != nil {
+	if _, err := fmt.Fprintf(cli.conn, "WhoAmI\r"); err != nil {
 		return 0, err
 	}
 
-	message, err := bufio.NewReader(cli.conn).ReadString('\n')
+	message, err := bufio.NewReader(cli.conn).ReadString('\r')
 	if err != nil {
 		return 0, err
 	}
@@ -76,8 +107,9 @@ func (cli *Client) WhoAmI() (uint64, error) {
 	return u, err2
 }
 
+// Fetch the IDs from the server
 func (cli *Client) ListClientIDs() ([]uint64, error) {
-	if _, err := fmt.Fprintf(cli.conn, "ListClientIDs"+"\n"); err != nil {
+	if _, err := fmt.Fprintf(cli.conn, "ListClientIDs\r"); err != nil {
 		return nil, err
 	}
 
@@ -100,21 +132,57 @@ func (cli *Client) ListClientIDs() ([]uint64, error) {
 	//	fmt.Printf("received %x\n", buff[:int(size)])
 	//}
 
-	message, err := bufio.NewReader(cli.conn).ReadString('\n')
-	fmt.Print("->: " + message)
-	//u,_ := strconv.ParseUint(message, 10, 64)
-	//return u, nil
+	message, err := bufio.NewReader(cli.conn).ReadString('\r')
 
-	fmt.Println("TODO: Fetch the IDs from the server")
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Print("->: " + message)
+
+	arr := strings.Split(message, "\n")
+	res := make([]uint64, 0)
+
+	for _, m := range arr {
+		r, err2 := strconv.ParseUint(m, 10, 64)
+
+		if err2 != nil {
+			return nil, err2
+		}
+
+		res = append(res, r)
+	}
 
 	return nil, err
 }
 
+//  Send the message to the server
 func (cli *Client) SendMsg(recipients []uint64, body []byte) error {
-	fmt.Println("TODO: Send the message to the server")
+	m := "SendMsg\n"
+
+	for _, u := range recipients {
+		m += strconv.FormatUint(u, 10)
+	}
+
+	m += "\n"
+	m += string(body)
+	m += "\r"
+
+	if _, err := fmt.Fprintf(cli.conn, m); err != nil {
+		return err
+	}
+
+	message, err := bufio.NewReader(cli.conn).ReadString('\r')
+	if err != nil {
+		return err
+	}
+
+	fmt.Print("->: " + message)
+
 	return nil
 }
 
+// Handle the messages from the server
 func (cli *Client) HandleIncomingMessages(writeCh chan<- IncomingMessage) {
-	fmt.Println("TODO: Handle the messages from the server")
+	fmt.Println("TODO: ")
 }
