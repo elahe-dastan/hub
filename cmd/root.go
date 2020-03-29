@@ -30,9 +30,10 @@ to quickly create a Cobra application.`,
 	server.Register(rootCmd)
 	client.Register(rootCmd)
 
+	exitFailure := 1
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
-		exitFailure := 1
 		os.Exit(exitFailure)
 	}
 }

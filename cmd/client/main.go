@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/elahe-dastan/applifier/config"
@@ -12,19 +13,28 @@ import (
 func Register(root *cobra.Command) {
 	root.AddCommand(
 		&cobra.Command{
-			Use:                        "client",
-			Short:                      "Runs the client",
+			Use:   "client",
+			Short: "Runs the client",
 			Run: func(cmd *cobra.Command, args []string) {
 				fmt.Println("Hello from client")
-				client := client.New()
+				cli := client.New()
 				c := config.ReadClient()
 				ladder := net.TCPAddr{
-					IP:   net.IP{byte(c.First),byte(c.Second),byte(c.Third),byte(c.Fourth)},
+					IP:   net.IP{byte(c.First), byte(c.Second), byte(c.Third), byte(c.Fourth)},
 					Port: c.Port,
 				}
-				client.Connect(&ladder)
-				client.WhoAmI()
-				client.ListClientIDs()
+
+				if err := cli.Connect(ladder.String()); err != nil {
+					log.Fatal(err)
+				}
+
+				if _, err := cli.WhoAmI(); err != nil {
+					log.Println(err)
+				}
+
+				if _, err := cli.ListClientIDs(); err != nil {
+					log.Println(err)
+				}
 			},
 		})
 }

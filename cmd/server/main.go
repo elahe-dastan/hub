@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/elahe-dastan/applifier/config"
@@ -21,7 +22,9 @@ func Register(root *cobra.Command)  {
 				ladder := net.TCPAddr{
 					Port: c.Port,
 				}
-				s.Start(&ladder)
+				if err := s.Start(&ladder);err != nil{
+					log.Println(err)
+				}
 			},
 		},
 	)

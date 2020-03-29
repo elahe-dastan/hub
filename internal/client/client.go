@@ -19,32 +19,37 @@ type Client struct {
 }
 
 func New() *Client {
-	return &Client{conn:nil}
+	return &Client{conn: nil}
 }
 
 // Connect to the server using the given address
-func (cli *Client) Connect(serverAddr *net.TCPAddr) error {
-	c, err := net.Dial("tcp", serverAddr.String())
+func (cli *Client) Connect(serverAddr string) error {
+	c, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
 	cli.conn = c
+
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print(">> ")
 		text, _ := reader.ReadString('\n')
-		fmt.Fprintf(c, text+"\n")
+
+		if _, err := fmt.Fprintf(c, text+"\n"); err != nil {
+			return err
+		}
 
 		message, _ := bufio.NewReader(c).ReadString('\n')
 		fmt.Print("->: " + message)
-		if strings.TrimSpace(string(text)) == "STOP" {
+
+		if strings.TrimSpace(text) == "STOP" {
 			fmt.Println("TCP client exiting...")
+
 			return nil
 		}
 	}
-	return nil
 }
 
 func (cli *Client) Close() error {
@@ -54,12 +59,19 @@ func (cli *Client) Close() error {
 
 // Fetch the ID from the server
 func (cli *Client) WhoAmI() (uint64, error) {
-	_, err := fmt.Fprintf(cli.conn, "WhoAmI"+"\n")
+	if _, err := fmt.Fprintf(cli.conn, "WhoAmI"+"\n"); err != nil {
+		return 0, err
+	}
 
 	message, err := bufio.NewReader(cli.conn).ReadString('\n')
+	if err != nil {
+		return 0, err
+	}
+
 	fmt.Print("->: " + message)
-	u, err := strconv.ParseUint(message, 10, 64)
-	return u, err
+	u, error := strconv.ParseUint(message, 10, 64)
+
+	return u, error
 }
 
 func (cli *Client) ListClientIDs() ([]uint64, error) {
