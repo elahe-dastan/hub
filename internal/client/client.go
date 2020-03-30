@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type IncomingMessage struct {
@@ -32,12 +34,16 @@ func (cli *Client) Connect(serverAddr string) error {
 
 	cli.conn = c
 
-	for {
-		reader := bufio.NewReader(os.Stdin)
+	go incoming(c)
 
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
 		fmt.Print(">> ")
+		fmt.Println(runtime.NumGoroutine())
 
 		text, _ := reader.ReadString('\n')
+		fmt.Println("After reading console")
 		text = strings.TrimSpace(text)
 
 		switch text {
@@ -75,6 +81,8 @@ func (cli *Client) Connect(serverAddr string) error {
 			if err2 := cli.SendMsg(recipients, []byte(b)); err2 != nil {
 				return err2
 			}
+		default:
+			time.Sleep(time.Millisecond)
 		}
 	}
 }
@@ -172,17 +180,36 @@ func (cli *Client) SendMsg(recipients []uint64, body []byte) error {
 		return err
 	}
 
-	message, err := bufio.NewReader(cli.conn).ReadString('\r')
-	if err != nil {
-		return err
-	}
+	//message, err := bufio.NewReader(cli.conn).ReadString('\r')
+	//if err != nil {
+	//	return err
+	//}
 
-	fmt.Print("->: " + message)
+	//fmt.Print("->: " + message)
 
 	return nil
 }
 
 // Handle the messages from the server
 func (cli *Client) HandleIncomingMessages(writeCh chan<- IncomingMessage) {
+	// a go routine which is reading from the channel
 	fmt.Println("TODO: ")
+}
+
+func incoming(c net.Conn) {
+	r := bufio.NewReader(c)
+	for {
+		fmt.Println("in incoming")
+		message, err := r.ReadString('\r')
+		fmt.Println(err)
+		fmt.Println("After reading connection")
+		//
+		//if err != nil {
+		//	return err
+		//}
+
+		fmt.Print("->: " + message)
+		time.Sleep(time.Millisecond)
+	}
+
 }

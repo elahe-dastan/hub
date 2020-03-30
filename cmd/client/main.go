@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/internal/client"
@@ -28,13 +29,15 @@ func Register(root *cobra.Command) {
 					log.Fatal(err)
 				}
 
-				if _, err := cli.WhoAmI(); err != nil {
-					log.Println(err)
-				}
+				time.Sleep(time.Millisecond)
 
-				if _, err := cli.ListClientIDs(); err != nil {
-					log.Println(err)
-				}
+				//if _, err := cli.WhoAmI(); err != nil {
+				//	log.Println(err)
+				//}
+				//
+				//if _, err := cli.ListClientIDs(); err != nil {
+				//	log.Println(err)
+				//}
 			},
 		})
 }

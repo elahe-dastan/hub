@@ -105,6 +105,11 @@ func (server *Server) handleConnection(c net.Conn) {
 	w := bufio.NewWriter(c)
 
 	for {
+		//arr, err := readData(r)
+		//if err != nil {
+		//	log.Println(err)
+		//	return
+		//}
 		netData, err := r.ReadString('\r')
 		if err != nil {
 			fmt.Println(err)
@@ -113,9 +118,9 @@ func (server *Server) handleConnection(c net.Conn) {
 
 		arr := strings.Split(netData, "\n")
 
-		temp := strings.TrimSpace(arr[0])
+		command := strings.TrimSpace(arr[0])
 
-		switch temp {
+		switch command {
 		case message.STOP:
 			break
 		case message.WhoAmI:
@@ -137,46 +142,30 @@ func (server *Server) handleConnection(c net.Conn) {
 			}
 		case message.SendMsg:
 			recipients, err := strconv.Atoi(arr[1])
-			body := arr[2]
+			body := arr[2] + "\r"
 
 			if err != nil {
 				log.Println(err)
 			}
 
-			recipientArr := make([]string, 0)
+			recipientArr := destCli(recipients)
 
-			for {
-				recipientArr = append(recipientArr, fmt.Sprintf("%d", recipients%10))
-				recipients /= 10
-				if recipients == 0 {
-					break
-				}
-			}
-
-			for k, v := range server.conn {
-				for _, r := range recipientArr {
-					if v == r {
-						if _, err = bufio.NewWriter(k).WriteString(body); err != nil {
-							log.Println(err)
-						}
-					}
-				}
-			}
+			server.broadcast(recipientArr, body)
 		}
 
-		_, err = w.WriteString("\r")
-		if err != nil {
-			log.Println(err)
-		}
+		//_, err = w.WriteString("\r")
+		//if err != nil {
+		//	log.Println(err)
+		//}
 
-		if err := w.Flush(); err != nil {
-			log.Println(err)
-		}
+		//if err := w.Flush(); err != nil {
+		//	log.Println(err)
+		//}
 	}
 
-	if err := c.Close(); err != nil {
-		log.Println(err)
-	}
+	//if err := c.Close(); err != nil {
+	//	log.Println(err)
+	//}
 }
 
 // Return the IDs of the connected clients
@@ -216,3 +205,36 @@ func disconnect(l io.Closer) {
 		log.Println(err)
 	}
 }
+
+func destCli(recipients int) []string {
+	recipientArr := make([]string, 0)
+
+	for {
+		recipientArr = append(recipientArr, fmt.Sprintf("%d", recipients%10))
+		recipients /= 10
+		if recipients == 0 {
+			break
+		}
+	}
+
+	return recipientArr
+}
+
+func (server Server) broadcast(recipientArr []string, body string) {
+	for k, v := range server.conn {
+		for _, r := range recipientArr {
+			if v == r {
+				if _, err := bufio.NewWriter(k).WriteString(body); err != nil {
+					log.Println(err)
+				}
+			}
+		}
+	}
+}
+
+//func readData(r *bufio.Reader) ([]string, error) {
+//	netData, err := r.ReadString('\r')
+//	arr := strings.Split(netData, "\n")
+//
+//	return arr, err
+//}
