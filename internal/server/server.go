@@ -124,7 +124,7 @@ func (server *Server) handleConnection(c net.Conn) {
 		case message.STOP:
 			break
 		case message.WhoAmI:
-			_, err := w.WriteString(server.conn[c] + "\n")
+			_, err := w.WriteString("Who," + server.conn[c] + "\n")
 			if err != nil {
 				log.Println(err)
 			}
@@ -153,14 +153,14 @@ func (server *Server) handleConnection(c net.Conn) {
 			server.broadcast(recipientArr, body)
 		}
 
-		//_, err = w.WriteString("\r")
-		//if err != nil {
-		//	log.Println(err)
-		//}
+		_, err = w.WriteString("\r")
+		if err != nil {
+			log.Println(err)
+		}
 
-		//if err := w.Flush(); err != nil {
-		//	log.Println(err)
-		//}
+		if err := w.Flush(); err != nil {
+			log.Println(err)
+		}
 	}
 
 	//if err := c.Close(); err != nil {

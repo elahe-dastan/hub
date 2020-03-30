@@ -3,6 +3,7 @@ package client
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"runtime"
@@ -17,11 +18,21 @@ type IncomingMessage struct {
 }
 
 type Client struct {
-	conn net.Conn
+	conn     net.Conn
+	reader   *bufio.Reader
+	Who      chan string
+	List     chan string
+	Incoming chan string
 }
 
 func New() *Client {
-	return &Client{conn: nil}
+	return &Client{
+		conn:     nil,
+		reader:   nil,
+		Who:      make(chan string),
+		List:     make(chan string),
+		Incoming: make(chan string),
+	}
 }
 
 // Connect to the server using the given address
@@ -33,8 +44,9 @@ func (cli *Client) Connect(serverAddr string) error {
 	}
 
 	cli.conn = c
+	cli.reader = bufio.NewReader(c)
 
-	go incoming(c)
+	go cli.HandleIncomingMessages()
 
 	reader := bufio.NewReader(os.Stdin)
 
@@ -104,10 +116,7 @@ func (cli *Client) WhoAmI() (uint64, error) {
 		return 0, err
 	}
 
-	message, err := bufio.NewReader(cli.conn).ReadString('\r')
-	if err != nil {
-		return 0, err
-	}
+	message := <-cli.Who
 
 	fmt.Print("->: " + message)
 	u, err2 := strconv.ParseUint(message, 10, 64)
@@ -121,30 +130,7 @@ func (cli *Client) ListClientIDs() ([]uint64, error) {
 		return nil, err
 	}
 
-	//buff := make([]uint64, 50)
-	//c := bufio.NewReader(cli.conn)
-	//
-	//for {
-	//	// read a single byte which contains the message length
-	//	size, err := c.ReadByte()
-	//	if err != nil {
-	//		return buff,err
-	//	}
-	//
-	//	// read the full message, or return an error
-	//	_, err = io.ReadFull(c, buff[:int(size)])
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	fmt.Printf("received %x\n", buff[:int(size)])
-	//}
-
-	message, err := bufio.NewReader(cli.conn).ReadString('\r')
-
-	if err != nil {
-		return nil, err
-	}
+	message := <-cli.List
 
 	fmt.Print("->: " + message)
 
@@ -161,7 +147,7 @@ func (cli *Client) ListClientIDs() ([]uint64, error) {
 		res = append(res, r)
 	}
 
-	return nil, err
+	return res, nil
 }
 
 //  Send the message to the server
@@ -191,25 +177,21 @@ func (cli *Client) SendMsg(recipients []uint64, body []byte) error {
 }
 
 // Handle the messages from the server
-func (cli *Client) HandleIncomingMessages(writeCh chan<- IncomingMessage) {
-	// a go routine which is reading from the channel
-	fmt.Println("TODO: ")
-}
-
-func incoming(c net.Conn) {
-	r := bufio.NewReader(c)
+func (cli *Client) HandleIncomingMessages() {
 	for {
 		fmt.Println("in incoming")
-		message, err := r.ReadString('\r')
-		fmt.Println(err)
-		fmt.Println("After reading connection")
-		//
-		//if err != nil {
-		//	return err
-		//}
+		m, err := cli.reader.ReadString('\r')
 
-		fmt.Print("->: " + message)
-		time.Sleep(time.Millisecond)
+		if err != nil {
+			log.Println(err)
+		}
+
+		arr := strings.Split(m, ",")
+		switch arr[0] {
+		case "Who":
+			cli.Who <- arr[1]
+		}
+
+		fmt.Println("wa")
 	}
-
 }
