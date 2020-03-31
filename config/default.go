@@ -9,5 +9,5 @@ port: 8080
 `
 
 const ServerDefault = `
-port: 8080
+port: "8080"
 `

@@ -9,30 +9,33 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/message"
 )
 
 type Server struct {
 	seq     int
 	conn    map[net.Conn]string
+	writers map[net.Conn]*bufio.Writer
 	running int
 }
 
 func New() *Server {
 	return &Server{
-		seq:  0,
-		conn: map[net.Conn]string{},
+		seq:     0,
+		conn:    map[net.Conn]string{},
+		writers: map[net.Conn]*bufio.Writer{},
 	}
 }
 
 // Start handling client connections and messages
-func (server *Server) Start(ladder *net.TCPAddr) error {
+func (server *Server) Start(c config.ServerConfig) error {
 	server.running = 1
-	PORT := ":" + strconv.Itoa(ladder.Port)
+
+	PORT := ":" + c.Port
 	l, err := net.Listen("tcp4", PORT)
 
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -55,7 +58,6 @@ func (server *Server) Start(ladder *net.TCPAddr) error {
 		c, err := l.Accept()
 
 		if err != nil {
-			fmt.Println(err)
 			return err
 		}
 
@@ -101,66 +103,19 @@ func (server Server) handleConnWorker(tasks <-chan net.Conn) {
 
 func (server *Server) handleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
+
 	r := bufio.NewReader(c)
-	w := bufio.NewWriter(c)
 
 	for {
-		//arr, err := readData(r)
-		//if err != nil {
-		//	log.Println(err)
-		//	return
-		//}
-		netData, err := r.ReadString('\r')
+		netData, err := r.ReadString('\n')
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 
-		arr := strings.Split(netData, "\n")
+		dest, res := server.response(netData, c)
 
-		command := strings.TrimSpace(arr[0])
-
-		switch command {
-		case message.STOP:
-			break
-		case message.WhoAmI:
-			_, err := w.WriteString("Who," + server.conn[c] + "\n")
-			if err != nil {
-				log.Println(err)
-			}
-		case message.ListClientIDs:
-			all := server.ListClientIDs()
-
-			for _, element := range all {
-				clientID := strconv.FormatUint(element, 10)
-				if clientID != server.conn[c] {
-					_, err := w.WriteString(clientID + "\n")
-					if err != nil {
-						log.Println(err)
-					}
-				}
-			}
-		case message.SendMsg:
-			recipients, err := strconv.Atoi(arr[1])
-			body := arr[2] + "\r"
-
-			if err != nil {
-				log.Println(err)
-			}
-
-			recipientArr := destCli(recipients)
-
-			server.broadcast(recipientArr, body)
-		}
-
-		_, err = w.WriteString("\r")
-		if err != nil {
-			log.Println(err)
-		}
-
-		if err := w.Flush(); err != nil {
-			log.Println(err)
-		}
+		server.broadcast(dest, res)
 	}
 
 	//if err := c.Close(); err != nil {
@@ -168,13 +123,14 @@ func (server *Server) handleConnection(c net.Conn) {
 	//}
 }
 
-// Return the IDs of the connected clients
-func (server *Server) ListClientIDs() []uint64 {
-	result := make([]uint64, 0)
+// Return the IDs of the connected clients except the client asking for this
+func (server *Server) ListClientIDs(c net.Conn) string {
+	result := "List"
 
-	for _, element := range server.conn {
-		r, _ := strconv.ParseUint(element, 10, 64)
-		result = append(result, r)
+	for _, id := range server.conn {
+		if id != server.conn[c] {
+			result = result + "," + id
+		}
 	}
 
 	return result
@@ -198,6 +154,7 @@ func (server *Server) Stop() error {
 func (server *Server) assignID(c net.Conn) {
 	server.seq++
 	server.conn[c] = strconv.Itoa(server.seq)
+	server.writers[c] = bufio.NewWriter(c)
 }
 
 func disconnect(l io.Closer) {
@@ -206,8 +163,14 @@ func disconnect(l io.Closer) {
 	}
 }
 
-func destCli(recipients int) []string {
+func (server Server) destCli(recipientIDs string) []net.Conn {
 	recipientArr := make([]string, 0)
+	recipientConn := make([]net.Conn, 0)
+
+	recipients, err := strconv.Atoi(recipientIDs)
+	if err != nil {
+		log.Println(err)
+	}
 
 	for {
 		recipientArr = append(recipientArr, fmt.Sprintf("%d", recipients%10))
@@ -217,24 +180,57 @@ func destCli(recipients int) []string {
 		}
 	}
 
-	return recipientArr
-}
-
-func (server Server) broadcast(recipientArr []string, body string) {
 	for k, v := range server.conn {
 		for _, r := range recipientArr {
 			if v == r {
-				if _, err := bufio.NewWriter(k).WriteString(body); err != nil {
-					log.Println(err)
-				}
+				recipientConn = append(recipientConn, k)
 			}
+		}
+	}
+
+	return recipientConn
+}
+
+func (server Server) broadcast(recipients []net.Conn, res string) {
+	for _, c := range recipients {
+		w := server.writers[c]
+		if _, err := w.WriteString(res); err != nil {
+			log.Println(err)
+		}
+
+		if err := w.Flush(); err != nil {
+			log.Println(err)
 		}
 	}
 }
 
-//func readData(r *bufio.Reader) ([]string, error) {
-//	netData, err := r.ReadString('\r')
-//	arr := strings.Split(netData, "\n")
-//
-//	return arr, err
-//}
+func (server Server) response(data string, c net.Conn) ([]net.Conn, string) {
+	arr := strings.Split(data, ",")
+	t := strings.TrimSpace(arr[0])
+
+	des := make([]net.Conn, 0)
+	res := ""
+
+	switch t {
+	case message.STOP:
+		des = append(des, c)
+		if err := server.Stop(); err != nil {
+			res = err.Error()
+		} else {
+			res = "Server stopped"
+		}
+	case message.WhoAmI:
+		des = append(des, c)
+		res = "Who," + server.conn[c]
+	case message.ListClientIDs:
+		des = append(des, c)
+		res = server.ListClientIDs(c)
+	case message.SendMsg:
+		des = server.destCli(arr[1])
+		res = arr[2]
+	}
+
+	res += "\n"
+
+	return des, res
+}

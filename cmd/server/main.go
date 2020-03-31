@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"log"
-	"net"
 
 	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/internal/server"
@@ -19,10 +18,8 @@ func Register(root *cobra.Command) {
 				fmt.Println("Hello from server")
 				s := server.New()
 				c := config.ReadServer()
-				ladder := net.TCPAddr{
-					Port: c.Port,
-				}
-				if err := s.Start(&ladder); err != nil {
+
+				if err := s.Start(c); err != nil {
 					log.Println(err)
 				}
 			},
