@@ -101,7 +101,7 @@ func (server Server) handleConnWorker(tasks <-chan net.Conn) {
 	}
 }
 
-func (server *Server) handleConnection(c net.Conn) {
+func (server Server) handleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
 
 	r := bufio.NewReader(c)
@@ -124,7 +124,7 @@ func (server *Server) handleConnection(c net.Conn) {
 }
 
 // Return the IDs of the connected clients except the client asking for this
-func (server *Server) ListClientIDs(c net.Conn) string {
+func (server Server) ListClientIDs(c net.Conn) string {
 	result := "List"
 
 	for _, id := range server.conn {
@@ -137,7 +137,7 @@ func (server *Server) ListClientIDs(c net.Conn) string {
 }
 
 // Stop accepting connections and close the existing ones
-func (server *Server) Stop() error {
+func (server Server) Stop() error {
 	server.running = 0
 
 	for conn, _ := range server.conn {
@@ -151,7 +151,7 @@ func (server *Server) Stop() error {
 	return nil
 }
 
-func (server *Server) assignID(c net.Conn) {
+func (server Server) assignID(c net.Conn) {
 	server.seq++
 	server.conn[c] = strconv.Itoa(server.seq)
 	server.writers[c] = bufio.NewWriter(c)
@@ -227,7 +227,7 @@ func (server Server) response(data string, c net.Conn) ([]net.Conn, string) {
 		res = server.ListClientIDs(c)
 	case message.SendMsg:
 		des = server.destCli(arr[1])
-		res = arr[2]
+		res = "Send," + arr[2]
 	}
 
 	res += "\n"

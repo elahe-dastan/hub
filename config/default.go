@@ -1,10 +1,7 @@
 package config
 
 const ClientDefault = `
-first: 127
-second: 0
-third: 0
-fourth: 1
+ip: 127.0.0.1
 port: 8080
 `
 

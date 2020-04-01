@@ -6,20 +6,17 @@ import (
 	"log"
 	"net"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
-	"time"
-)
 
-type IncomingMessage struct {
-	SenderID uint64
-	Body     []byte
-}
+	"github.com/elahe-dastan/applifier/config"
+)
 
 type Client struct {
 	conn     net.Conn
 	reader   *bufio.Reader
+	writer   *bufio.Writer
+	console  *bufio.Reader
 	Who      chan string
 	List     chan string
 	Incoming chan string
@@ -27,8 +24,6 @@ type Client struct {
 
 func New() *Client {
 	return &Client{
-		conn:     nil,
-		reader:   nil,
 		Who:      make(chan string),
 		List:     make(chan string),
 		Incoming: make(chan string),
@@ -36,151 +31,100 @@ func New() *Client {
 }
 
 // Connect to the server using the given address
-func (cli *Client) Connect(serverAddr string) error {
+func (cli *Client) Connect(cc config.ClientConfig) error {
+	serverAddr := cc.IP + ":" + cc.Port
 	c, err := net.Dial("tcp", serverAddr)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
 	cli.conn = c
 	cli.reader = bufio.NewReader(c)
+	cli.writer = bufio.NewWriter(c)
+	cli.console = bufio.NewReader(os.Stdin)
 
 	go cli.HandleIncomingMessages()
 
-	reader := bufio.NewReader(os.Stdin)
-
 	for {
 		fmt.Print(">> ")
-		fmt.Println(runtime.NumGoroutine())
 
-		text, _ := reader.ReadString('\n')
-		fmt.Println("After reading console")
-		text = strings.TrimSpace(text)
+		req, _ := cli.console.ReadString('\n')
+		req = strings.TrimSpace(req)
 
-		switch text {
-		case "STOP":
-			return cli.Close()
-		case "Who":
-			if _, err2 := cli.WhoAmI(); err2 != nil {
-				return err2
-			}
-		case "List":
-			if _, err2 := cli.ListClientIDs(); err2 != nil {
-				return err2
-			}
-		case "Send":
-			recipients := make([]uint64, 0)
-
-			for {
-				fmt.Println("Enter the next client")
-				t, _ := reader.ReadString('\n')
-				t = strings.TrimSuffix(t, "\n")
-
-				if t == "END" {
-					break
-				}
-
-				c, _ := strconv.ParseUint(t, 10, 64)
-				recipients = append(recipients, c)
-
-			}
-
-			fmt.Println("Enter the body")
-
-			b, _ := reader.ReadString('\n')
-
-			if err2 := cli.SendMsg(recipients, []byte(b)); err2 != nil {
-				return err2
-			}
-		default:
-			time.Sleep(time.Millisecond)
-		}
+		cli.sendReq(req)
 	}
 }
 
 // Close the connection to the server
-func (cli *Client) Close() error {
+func (cli *Client) Close() {
 	fmt.Println("TCP client exiting...")
 
-	if _, err := fmt.Fprintf(cli.conn, "STOP\r"); err != nil {
-		return err
+	if _, err := fmt.Fprintf(cli.writer, "STOP\n"); err != nil {
+		log.Println(err)
 	}
-
-	return nil
 }
 
 // Fetch the ID from the server
-func (cli *Client) WhoAmI() (uint64, error) {
-	if _, err := fmt.Fprintf(cli.conn, "WhoAmI\r"); err != nil {
-		return 0, err
+func (cli *Client) WhoAmI() {
+	if _, err := fmt.Fprintf(cli.writer, "WhoAmI\n"); err != nil {
+		log.Println(err)
 	}
 
 	message := <-cli.Who
 
 	fmt.Print("->: " + message)
-	u, err2 := strconv.ParseUint(message, 10, 64)
-
-	return u, err2
 }
 
 // Fetch the IDs from the server
-func (cli *Client) ListClientIDs() ([]uint64, error) {
-	if _, err := fmt.Fprintf(cli.conn, "ListClientIDs\r"); err != nil {
-		return nil, err
+func (cli *Client) ListClientIDs() {
+	if _, err := fmt.Fprintf(cli.conn, "ListClientIDs\n"); err != nil {
+		log.Println(err)
 	}
 
 	message := <-cli.List
 
-	fmt.Print("->: " + message)
+	IDs := strings.Split(message, ",")
 
-	arr := strings.Split(message, "\n")
-	res := make([]uint64, 0)
-
-	for _, m := range arr {
-		r, err2 := strconv.ParseUint(m, 10, 64)
-
-		if err2 != nil {
-			return nil, err2
-		}
-
-		res = append(res, r)
+	for _, id := range IDs {
+		fmt.Println(id)
 	}
-
-	return res, nil
 }
 
 //  Send the message to the server
-func (cli *Client) SendMsg(recipients []uint64, body []byte) error {
-	m := "SendMsg\n"
+func (cli *Client) SendMsg() {
+	req := "Send"
 
-	for _, u := range recipients {
-		m += strconv.FormatUint(u, 10)
+	for {
+		fmt.Println("Enter the next client or END")
+		t, _ := cli.console.ReadString('\n')
+		t = strings.TrimSuffix(t, "\n")
+
+		if t == "END" {
+			break
+		}
+
+		if _, err := strconv.Atoi(t); err != nil {
+			fmt.Println("Enter a number or END")
+		} else {
+			req = req + "," + t
+		}
 	}
 
-	m += "\n"
-	m += string(body)
-	m += "\r"
+	fmt.Println("Enter the body")
 
-	if _, err := fmt.Fprintf(cli.conn, m); err != nil {
-		return err
+	b, _ := cli.console.ReadString('\n')
+
+	req = req + "," + b + "\n"
+
+	if _, err := fmt.Fprintf(cli.writer, req); err != nil {
+		log.Println(err)
 	}
-
-	//message, err := bufio.NewReader(cli.conn).ReadString('\r')
-	//if err != nil {
-	//	return err
-	//}
-
-	//fmt.Print("->: " + message)
-
-	return nil
 }
 
 // Handle the messages from the server
 func (cli *Client) HandleIncomingMessages() {
 	for {
-		fmt.Println("in incoming")
-		m, err := cli.reader.ReadString('\r')
+		m, err := cli.reader.ReadString('\n')
 
 		if err != nil {
 			log.Println(err)
@@ -190,8 +134,26 @@ func (cli *Client) HandleIncomingMessages() {
 		switch arr[0] {
 		case "Who":
 			cli.Who <- arr[1]
+		case "List":
+			for i := 1; i < len(arr); i++ {
+				cli.List <- arr[i]
+			}
+		case "Send":
+			fmt.Println(arr[1])
+			cli.Incoming <- arr[1]
 		}
+	}
+}
 
-		fmt.Println("wa")
+func (cli *Client) sendReq(req string) {
+	switch req {
+	case "STOP":
+		cli.Close()
+	case "Who":
+		cli.WhoAmI()
+	case "List":
+		cli.ListClientIDs()
+	case "Send":
+		cli.SendMsg()
 	}
 }
