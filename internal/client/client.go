@@ -24,17 +24,22 @@ type Client struct {
 }
 
 func New() *Client {
+	bufferSize := 20
 	return &Client{
-		Who:      make(chan string, 20),
-		List:     make(chan string, 20),
-		Incoming: make(chan string, 20),
+		Who:      make(chan string, bufferSize),
+		List:     make(chan string, bufferSize),
+		Incoming: make(chan string, bufferSize),
 	}
 }
 
-// Connect to the server using the given address
+// Connects to the server with the address specified in the config file
+// and spawns another goroutine which is waiting for the server messages
+// all the time and the function itself starts an infinite for loop which
+// reads from the console and sends the command to the server
 func (cli *Client) Connect(cc config.ClientConfig) error {
 	serverAddr := cc.IP + ":" + cc.Port
 	c, err := net.Dial("tcp", serverAddr)
+
 	if err != nil {
 		return err
 	}
@@ -67,12 +72,12 @@ func (cli *Client) Close() {
 func (cli *Client) WhoAmI() {
 	cli.flushBuffer(message.WhoAmI + "\n")
 
-	message := <-cli.Who
+	m := <-cli.Who
 
-	fmt.Print("->: " + message)
+	fmt.Print("->: " + m)
 }
 
-// Fetch the IDs from the server
+// Fetch the IDs of the clients currently connected to the server
 func (cli *Client) ListClientIDs() {
 	cli.flushBuffer(message.ListClientIDs + "\n")
 
@@ -85,12 +90,14 @@ func (cli *Client) ListClientIDs() {
 	}
 }
 
-//  Send the message to the server
+// Gets the IDs of the clients user wants to send a message to
+// and the message itself then sends a req to the server to do this
 func (cli *Client) SendMsg() {
 	req := message.SendMsg + ","
 
 	for {
 		fmt.Println("Enter the next client or END")
+
 		t, _ := cli.console.ReadString('\n')
 		t = strings.TrimSuffix(t, "\n")
 
@@ -114,7 +121,8 @@ func (cli *Client) SendMsg() {
 	cli.flushBuffer(req)
 }
 
-// Handle the messages from the server
+// Starts an infinite for loop which is repeatedly waiting for
+//messages from the server
 func (cli *Client) HandleIncomingMessages() {
 	for {
 		m, err := cli.reader.ReadString('\n')
@@ -136,6 +144,8 @@ func (cli *Client) HandleIncomingMessages() {
 	}
 }
 
+// Based on the type of the command sends a proper
+// message using the right protocol to the server
 func (cli *Client) sendReq(req string) {
 	switch req {
 	case "STOP":
@@ -149,8 +159,10 @@ func (cli *Client) sendReq(req string) {
 	}
 }
 
+// Writes the message that should be sent to the server in the
+// buffer and the flushes it
 func (cli Client) flushBuffer(m string) {
-	if _, err := fmt.Fprintf(cli.writer, m); err != nil {
+	if _, err := cli.writer.WriteString(m); err != nil {
 		log.Println(err)
 	}
 

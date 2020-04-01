@@ -50,7 +50,6 @@ func (server *Server) Start(c config.ServerConfig) error {
 	}
 
 	for {
-
 		if server.running == 0 {
 			return nil
 		}
@@ -117,10 +116,6 @@ func (server *Server) handleConnection(c net.Conn) {
 
 		server.broadcast(dest, res)
 	}
-
-	//if err := c.Close(); err != nil {
-	//	log.Println(err)
-	//}
 }
 
 // Return the IDs of the connected clients except the client asking for this
@@ -206,6 +201,7 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 	switch t {
 	case message.STOP:
 		des = append(des, c)
+
 		if err := server.Stop(); err != nil {
 			res = err.Error()
 		} else {
