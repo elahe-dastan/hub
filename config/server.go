@@ -9,7 +9,7 @@ import (
 )
 
 type ServerConfig struct {
-	Port string `mapstructure:"port"`
+	Address string `mapstructure:"address"`
 }
 
 func ReadServer() ServerConfig {

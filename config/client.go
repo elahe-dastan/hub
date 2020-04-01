@@ -9,8 +9,7 @@ import (
 )
 
 type ClientConfig struct {
-	IP   string `mapstructure:"ip"`
-	Port string `mapstructure:"port"`
+	ServerAddr string `mapstructure:"address"`
 }
 
 func ReadClient() ClientConfig {

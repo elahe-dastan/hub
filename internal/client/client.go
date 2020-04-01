@@ -25,6 +25,7 @@ type Client struct {
 
 func New() *Client {
 	bufferSize := 20
+
 	return &Client{
 		Who:      make(chan string, bufferSize),
 		List:     make(chan string, bufferSize),
@@ -37,8 +38,7 @@ func New() *Client {
 // all the time and the function itself starts an infinite for loop which
 // reads from the console and sends the command to the server
 func (cli *Client) Connect(cc config.ClientConfig) error {
-	serverAddr := cc.IP + ":" + cc.Port
-	c, err := net.Dial("tcp", serverAddr)
+	c, err := net.Dial("tcp", cc.ServerAddr)
 
 	if err != nil {
 		return err

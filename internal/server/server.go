@@ -32,8 +32,7 @@ func New() *Server {
 func (server *Server) Start(c config.ServerConfig) error {
 	server.running = 1
 
-	PORT := ":" + c.Port
-	l, err := net.Listen("tcp4", PORT)
+	l, err := net.Listen("tcp4", c.Address)
 
 	if err != nil {
 		return err
@@ -139,7 +138,7 @@ func (server *Server) ListClientIDs(c net.Conn) string {
 func (server *Server) Stop() error {
 	server.running = 0
 
-	for conn, _ := range server.conn {
+	for conn := range server.conn {
 		if err := conn.Close(); err != nil {
 			log.Println(err)
 		}
@@ -150,6 +149,7 @@ func (server *Server) Stop() error {
 	return nil
 }
 
+// nolint: interfacer
 func (server *Server) assignID(c net.Conn) {
 	server.seq++
 	server.conn[c] = strconv.Itoa(server.seq)
