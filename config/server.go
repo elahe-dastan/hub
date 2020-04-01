@@ -12,6 +12,28 @@ type ServerConfig struct {
 	Address string `mapstructure:"address"`
 }
 
+//// Global koanf instance. Use . as the key path delimiter. This can be / or anything.
+//var k = koanf.New(".")
+//
+//func ReadServer() ServerConfig {
+//	// Load JSON config.
+//	if err := k.Load(file.Provider("./serverConf.yml"), yaml.Parser()); err != nil {
+//		log.Fatalf("error loading config: %v", err)
+//	}
+//
+//	var out ServerConfig
+//
+//	// Quick unmarshal.
+//	k.Unmarshal("parent1.child1", &out)
+//	fmt.Println(out)
+//
+//	// Unmarshal with advanced config.
+//	//out = childStruct{}
+//	//k.UnmarshalWithConf("parent1.child1", &out, koanf.UnmarshalConf{Tag: "koanf"})
+//	//fmt.Println(out)
+//	return out
+//}
+
 func ReadServer() ServerConfig {
 	viper.AddConfigPath(".")
 	viper.SetConfigType("yml")

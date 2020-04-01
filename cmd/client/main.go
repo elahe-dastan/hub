@@ -4,32 +4,37 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/internal/client"
 	"github.com/spf13/cobra"
 )
 
 func Register(root *cobra.Command) {
+	c := cobra.Command{
+		Use:   "client",
+		Short: "Runs the client",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("Hello from client")
+			cli := client.New()
+			//c := config.ReadClient()
+			a, _ := cmd.Flags().GetString("server")
+
+			if err := cli.Connect(a); err != nil {
+				log.Fatal(err)
+			}
+
+			//if _, err := cli.WhoAmI(); err != nil {
+			//	log.Println(err)
+			//}
+			//
+			//if _, err := cli.ListClientIDs(); err != nil {
+			//	log.Println(err)
+			//}
+		},
+	}
+
+	c.Flags().StringP("server", "s", "127.0.0.1:8080", "server address")
+
 	root.AddCommand(
-		&cobra.Command{
-			Use:   "client",
-			Short: "Runs the client",
-			Run: func(cmd *cobra.Command, args []string) {
-				fmt.Println("Hello from client")
-				cli := client.New()
-				c := config.ReadClient()
-
-				if err := cli.Connect(c); err != nil {
-					log.Fatal(err)
-				}
-
-				//if _, err := cli.WhoAmI(); err != nil {
-				//	log.Println(err)
-				//}
-				//
-				//if _, err := cli.ListClientIDs(); err != nil {
-				//	log.Println(err)
-				//}
-			},
-		})
+		&c,
+	)
 }

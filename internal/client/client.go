@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/message"
 )
 
@@ -37,8 +36,8 @@ func New() *Client {
 // and spawns another goroutine which is waiting for the server messages
 // all the time and the function itself starts an infinite for loop which
 // reads from the console and sends the command to the server
-func (cli *Client) Connect(cc config.ClientConfig) error {
-	c, err := net.Dial("tcp", cc.ServerAddr)
+func (cli *Client) Connect(serverAddr string) error {
+	c, err := net.Dial("tcp", serverAddr)
 
 	if err != nil {
 		return err
@@ -50,6 +49,7 @@ func (cli *Client) Connect(cc config.ClientConfig) error {
 	cli.console = bufio.NewReader(os.Stdin)
 
 	go cli.HandleIncomingMessages()
+	go cli.privateMessage()
 
 	for {
 		fmt.Print(">> ")
@@ -123,7 +123,7 @@ func (cli *Client) SendMsg() {
 }
 
 // Starts an infinite for loop which is repeatedly waiting for
-//messages from the server
+// messages from the server
 func (cli *Client) HandleIncomingMessages() {
 	for {
 		m, err := cli.reader.ReadString('\n')
@@ -139,7 +139,6 @@ func (cli *Client) HandleIncomingMessages() {
 		case "List":
 			cli.List <- arr[1]
 		case "Send":
-			fmt.Println(arr[1])
 			cli.Incoming <- arr[1]
 		}
 	}
@@ -170,4 +169,8 @@ func (cli Client) flushBuffer(m string) {
 	if err := cli.writer.Flush(); err != nil {
 		log.Println(err)
 	}
+}
+
+func (cli Client) privateMessage() {
+	fmt.Print(<-cli.Incoming)
 }
