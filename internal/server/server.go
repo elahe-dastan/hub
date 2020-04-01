@@ -163,6 +163,7 @@ func disconnect(l io.Closer) {
 }
 
 func (server *Server) destCli(recipientIDs string) []net.Conn {
+	recipientIDs = strings.TrimSuffix(recipientIDs, "-")
 	recipientArr := strings.Split(recipientIDs, "-")
 
 	recipientConn := make([]net.Conn, 0)
@@ -209,16 +210,14 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 		}
 	case message.WhoAmI:
 		des = append(des, c)
-		res = "Who," + server.conn[c]
+		res = "Who," + server.conn[c] + "\n"
 	case message.ListClientIDs:
 		des = append(des, c)
-		res = server.ListClientIDs(c)
+		res = server.ListClientIDs(c) + "\n"
 	case message.SendMsg:
 		des = server.destCli(arr[1])
 		res = "Send," + arr[2]
 	}
-
-	res += "\n"
 
 	return des, res
 }

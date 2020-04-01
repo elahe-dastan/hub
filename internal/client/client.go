@@ -83,6 +83,7 @@ func (cli *Client) ListClientIDs() {
 
 	m := <-cli.List
 
+	m = strings.TrimSuffix(m, "-\n")
 	IDs := strings.Split(m, "-")
 
 	for _, id := range IDs {
@@ -116,7 +117,7 @@ func (cli *Client) SendMsg() {
 
 	b, _ := cli.console.ReadString('\n')
 
-	req = req + "," + b + "\n"
+	req = req + "," + b
 
 	cli.flushBuffer(req)
 }
