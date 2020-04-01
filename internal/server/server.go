@@ -95,13 +95,13 @@ func (server *Server) Start(c config.ServerConfig) error {
 //	handleConnection1(conn)
 //}
 
-func (server Server) handleConnWorker(tasks <-chan net.Conn) {
+func (server *Server) handleConnWorker(tasks <-chan net.Conn) {
 	for c := range tasks {
 		server.handleConnection(c)
 	}
 }
 
-func (server Server) handleConnection(c net.Conn) {
+func (server *Server) handleConnection(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
 
 	r := bufio.NewReader(c)
@@ -124,20 +124,24 @@ func (server Server) handleConnection(c net.Conn) {
 }
 
 // Return the IDs of the connected clients except the client asking for this
-func (server Server) ListClientIDs(c net.Conn) string {
-	result := "List"
+func (server *Server) ListClientIDs(c net.Conn) string {
+	result := "List,"
 
 	for _, id := range server.conn {
 		if id != server.conn[c] {
-			result = result + "," + id
+			result = result + id + "-"
 		}
+	}
+
+	if result == "List" {
+		result = result + "," + "No other client connected"
 	}
 
 	return result
 }
 
 // Stop accepting connections and close the existing ones
-func (server Server) Stop() error {
+func (server *Server) Stop() error {
 	server.running = 0
 
 	for conn, _ := range server.conn {
@@ -151,7 +155,7 @@ func (server Server) Stop() error {
 	return nil
 }
 
-func (server Server) assignID(c net.Conn) {
+func (server *Server) assignID(c net.Conn) {
 	server.seq++
 	server.conn[c] = strconv.Itoa(server.seq)
 	server.writers[c] = bufio.NewWriter(c)
@@ -163,22 +167,10 @@ func disconnect(l io.Closer) {
 	}
 }
 
-func (server Server) destCli(recipientIDs string) []net.Conn {
-	recipientArr := make([]string, 0)
+func (server *Server) destCli(recipientIDs string) []net.Conn {
+	recipientArr := strings.Split(recipientIDs, "-")
+
 	recipientConn := make([]net.Conn, 0)
-
-	recipients, err := strconv.Atoi(recipientIDs)
-	if err != nil {
-		log.Println(err)
-	}
-
-	for {
-		recipientArr = append(recipientArr, fmt.Sprintf("%d", recipients%10))
-		recipients /= 10
-		if recipients == 0 {
-			break
-		}
-	}
 
 	for k, v := range server.conn {
 		for _, r := range recipientArr {
@@ -191,7 +183,7 @@ func (server Server) destCli(recipientIDs string) []net.Conn {
 	return recipientConn
 }
 
-func (server Server) broadcast(recipients []net.Conn, res string) {
+func (server *Server) broadcast(recipients []net.Conn, res string) {
 	for _, c := range recipients {
 		w := server.writers[c]
 		if _, err := w.WriteString(res); err != nil {
@@ -204,7 +196,7 @@ func (server Server) broadcast(recipients []net.Conn, res string) {
 	}
 }
 
-func (server Server) response(data string, c net.Conn) ([]net.Conn, string) {
+func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 	arr := strings.Split(data, ",")
 	t := strings.TrimSpace(arr[0])
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/elahe-dastan/applifier/config"
+	"github.com/elahe-dastan/applifier/message"
 )
 
 type Client struct {
@@ -24,9 +25,9 @@ type Client struct {
 
 func New() *Client {
 	return &Client{
-		Who:      make(chan string),
-		List:     make(chan string),
-		Incoming: make(chan string),
+		Who:      make(chan string, 20),
+		List:     make(chan string, 20),
+		Incoming: make(chan string, 20),
 	}
 }
 
@@ -59,16 +60,12 @@ func (cli *Client) Connect(cc config.ClientConfig) error {
 func (cli *Client) Close() {
 	fmt.Println("TCP client exiting...")
 
-	if _, err := fmt.Fprintf(cli.writer, "STOP\n"); err != nil {
-		log.Println(err)
-	}
+	cli.flushBuffer("STOP\n")
 }
 
 // Fetch the ID from the server
 func (cli *Client) WhoAmI() {
-	if _, err := fmt.Fprintf(cli.writer, "WhoAmI\n"); err != nil {
-		log.Println(err)
-	}
+	cli.flushBuffer(message.WhoAmI + "\n")
 
 	message := <-cli.Who
 
@@ -77,13 +74,11 @@ func (cli *Client) WhoAmI() {
 
 // Fetch the IDs from the server
 func (cli *Client) ListClientIDs() {
-	if _, err := fmt.Fprintf(cli.conn, "ListClientIDs\n"); err != nil {
-		log.Println(err)
-	}
+	cli.flushBuffer(message.ListClientIDs + "\n")
 
-	message := <-cli.List
+	m := <-cli.List
 
-	IDs := strings.Split(message, ",")
+	IDs := strings.Split(m, "-")
 
 	for _, id := range IDs {
 		fmt.Println(id)
@@ -92,7 +87,7 @@ func (cli *Client) ListClientIDs() {
 
 //  Send the message to the server
 func (cli *Client) SendMsg() {
-	req := "Send"
+	req := message.SendMsg + ","
 
 	for {
 		fmt.Println("Enter the next client or END")
@@ -106,7 +101,7 @@ func (cli *Client) SendMsg() {
 		if _, err := strconv.Atoi(t); err != nil {
 			fmt.Println("Enter a number or END")
 		} else {
-			req = req + "," + t
+			req = req + t + "-"
 		}
 	}
 
@@ -116,9 +111,7 @@ func (cli *Client) SendMsg() {
 
 	req = req + "," + b + "\n"
 
-	if _, err := fmt.Fprintf(cli.writer, req); err != nil {
-		log.Println(err)
-	}
+	cli.flushBuffer(req)
 }
 
 // Handle the messages from the server
@@ -135,9 +128,7 @@ func (cli *Client) HandleIncomingMessages() {
 		case "Who":
 			cli.Who <- arr[1]
 		case "List":
-			for i := 1; i < len(arr); i++ {
-				cli.List <- arr[i]
-			}
+			cli.List <- arr[1]
 		case "Send":
 			fmt.Println(arr[1])
 			cli.Incoming <- arr[1]
@@ -155,5 +146,15 @@ func (cli *Client) sendReq(req string) {
 		cli.ListClientIDs()
 	case "Send":
 		cli.SendMsg()
+	}
+}
+
+func (cli Client) flushBuffer(m string) {
+	if _, err := fmt.Fprintf(cli.writer, m); err != nil {
+		log.Println(err)
+	}
+
+	if err := cli.writer.Flush(); err != nil {
+		log.Println(err)
 	}
 }
