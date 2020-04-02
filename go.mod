@@ -3,10 +3,14 @@ module github.com/elahe-dastan/applifier
 go 1.13
 
 require (
+	github.com/c-bata/go-prompt v0.2.3
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/knadh/koanf v0.8.2
+	github.com/knadh/koanf v0.8.2 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/pelletier/go-toml v1.6.0 // indirect
+	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942 // indirect
+	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v0.0.6

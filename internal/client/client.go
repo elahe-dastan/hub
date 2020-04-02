@@ -3,13 +3,14 @@ package client
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/elahe-dastan/applifier/message"
+	"github.com/elahe-dastan/applifier/request"
+	log "github.com/sirupsen/logrus"
 )
 
 type Client struct {
@@ -24,6 +25,11 @@ type Client struct {
 
 func New() *Client {
 	bufferSize := 20
+
+	Formatter := new(log.TextFormatter)
+	Formatter.TimestampFormat = "02-01-2006 15:04:05"
+	Formatter.FullTimestamp = true
+	log.SetFormatter(Formatter)
 
 	return &Client{
 		Who:      make(chan string, bufferSize),
@@ -70,7 +76,7 @@ func (cli *Client) Close() {
 
 // Fetch the ID from the server
 func (cli *Client) WhoAmI() {
-	cli.flushBuffer(message.WhoAmI + "\n")
+	cli.flushBuffer((&request.Who{}).Marshal())
 
 	m := <-cli.Who
 
@@ -79,7 +85,7 @@ func (cli *Client) WhoAmI() {
 
 // Fetch the IDs of the clients currently connected to the server
 func (cli *Client) ListClientIDs() {
-	cli.flushBuffer(message.ListClientIDs + "\n")
+	cli.flushBuffer((&request.List{}).Marshal())
 
 	m := <-cli.List
 
@@ -94,7 +100,7 @@ func (cli *Client) ListClientIDs() {
 // Gets the IDs of the clients user wants to send a message to
 // and the message itself then sends a req to the server to do this
 func (cli *Client) SendMsg() {
-	req := message.SendMsg + ","
+	r := request.Send{IDs: []string{}}
 
 	for {
 		fmt.Println("Enter the next client or END")
@@ -109,17 +115,16 @@ func (cli *Client) SendMsg() {
 		if _, err := strconv.Atoi(t); err != nil {
 			fmt.Println("Enter a number or END")
 		} else {
-			req = req + t + "-"
+			r.IDs = append(r.IDs, t)
 		}
 	}
 
 	fmt.Println("Enter the body")
 
 	b, _ := cli.console.ReadString('\n')
+	r.Body = b
 
-	req = req + "," + b
-
-	cli.flushBuffer(req)
+	cli.flushBuffer(r.Marshal())
 }
 
 // Starts an infinite for loop which is repeatedly waiting for
@@ -129,16 +134,16 @@ func (cli *Client) HandleIncomingMessages() {
 		m, err := cli.reader.ReadString('\n')
 
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 
 		arr := strings.Split(m, ",")
 		switch arr[0] {
-		case "Who":
+		case message.WhoAmI:
 			cli.Who <- arr[1]
-		case "List":
+		case message.ListClientIDs:
 			cli.List <- arr[1]
-		case "Send":
+		case message.SendMsg:
 			cli.Incoming <- arr[1]
 		}
 	}
@@ -163,11 +168,11 @@ func (cli *Client) sendReq(req string) {
 // buffer and the flushes it
 func (cli Client) flushBuffer(m string) {
 	if _, err := cli.writer.WriteString(m); err != nil {
-		log.Println(err)
+		log.Error(err)
 	}
 
 	if err := cli.writer.Flush(); err != nil {
-		log.Println(err)
+		log.Error(err)
 	}
 }
 

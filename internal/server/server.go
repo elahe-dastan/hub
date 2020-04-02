@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"strconv"
 	"strings"
 
 	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/message"
+	"github.com/elahe-dastan/applifier/response"
+	log "github.com/sirupsen/logrus"
 )
 
 type Server struct {
@@ -21,6 +22,11 @@ type Server struct {
 }
 
 func New() *Server {
+	Formatter := new(log.TextFormatter)
+	Formatter.TimestampFormat = "02-01-2006 15:04:05"
+	Formatter.FullTimestamp = true
+	log.SetFormatter(Formatter)
+
 	return &Server{
 		seq:     0,
 		conn:    map[net.Conn]string{},
@@ -107,7 +113,7 @@ func (server *Server) handleConnection(c net.Conn) {
 	for {
 		netData, err := r.ReadString('\n')
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 			return
 		}
 
@@ -118,20 +124,17 @@ func (server *Server) handleConnection(c net.Conn) {
 }
 
 // Return the IDs of the connected clients except the client asking for this
-func (server *Server) ListClientIDs(c net.Conn) string {
-	result := "List,"
+func (server *Server) ListClientIDs(c net.Conn, r *response.List) {
+	if len(server.conn) == 1 {
+		r.IDs = append(r.IDs, "No other client connected")
+		return
+	}
 
 	for _, id := range server.conn {
 		if id != server.conn[c] {
-			result = result + id + "-"
+			r.IDs = append(r.IDs, id)
 		}
 	}
-
-	if result == "List" {
-		result = result + "," + "No other client connected"
-	}
-
-	return result
 }
 
 // Stop accepting connections and close the existing ones
@@ -140,7 +143,7 @@ func (server *Server) Stop() error {
 
 	for conn := range server.conn {
 		if err := conn.Close(); err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}
 
@@ -158,7 +161,7 @@ func (server *Server) assignID(c net.Conn) {
 
 func disconnect(l io.Closer) {
 	if err := l.Close(); err != nil {
-		log.Println(err)
+		log.Error(err)
 	}
 }
 
@@ -183,11 +186,11 @@ func (server *Server) broadcast(recipients []net.Conn, res string) {
 	for _, c := range recipients {
 		w := server.writers[c]
 		if _, err := w.WriteString(res); err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 
 		if err := w.Flush(); err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}
 }
@@ -210,13 +213,17 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 		}
 	case message.WhoAmI:
 		des = append(des, c)
-		res = "Who," + server.conn[c] + "\n"
+		r := response.Who{ID: server.conn[c]}
+		res = r.Marshal()
 	case message.ListClientIDs:
 		des = append(des, c)
-		res = server.ListClientIDs(c) + "\n"
+		r := response.List{IDs: []string{}}
+		server.ListClientIDs(c, &r)
+		res = r.Marshal()
 	case message.SendMsg:
 		des = server.destCli(arr[1])
-		res = "Send," + arr[2]
+		r := response.Send{Body: strings.Join(arr[2:], ",")}
+		res = r.Marshal()
 	}
 
 	return des, res
