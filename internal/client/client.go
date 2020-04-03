@@ -138,7 +138,7 @@ func (cli *Client) HandleIncomingMessages() {
 		m, err := cli.reader.ReadString('\n')
 
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 
 		s := response.Unmarshal(m)
@@ -176,11 +176,11 @@ func (cli *Client) sendReq(req string) {
 // buffer and the flushes it
 func (cli Client) flushBuffer(m string) {
 	if _, err := cli.writer.WriteString(m); err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	if err := cli.writer.Flush(); err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 }
 

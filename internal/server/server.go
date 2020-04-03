@@ -30,8 +30,8 @@ func New() *Server {
 
 	return &Server{
 		seq:     0,
-		conn:    map[net.Conn]string{},
-		writers: map[net.Conn]*bufio.Writer{},
+		conn:    make(map[net.Conn]string),
+		writers: make(map[net.Conn]*bufio.Writer),
 	}
 }
 
@@ -156,7 +156,7 @@ func (server *Server) Stop() error {
 		}
 	}
 
-	server.conn = map[net.Conn]string{}
+	server.conn = make(map[net.Conn]string)
 
 	return nil
 }

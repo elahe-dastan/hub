@@ -21,14 +21,6 @@ func Register(root *cobra.Command) {
 			if err := cli.Connect(a); err != nil {
 				log.Fatal(err)
 			}
-
-			//if _, err := cli.WhoAmI(); err != nil {
-			//	log.Println(err)
-			//}
-			//
-			//if _, err := cli.ListClientIDs(); err != nil {
-			//	log.Println(err)
-			//}
 		},
 	}
 
