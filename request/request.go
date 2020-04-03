@@ -45,11 +45,7 @@ func (l List) Marshal() string {
 
 // Body has "\n" itself so there is no need to add it
 func (s Send) Marshal() string {
-	ids := ""
-
-	for _, id := range s.IDs {
-		ids = ids + id + "-"
-	}
+	ids := strings.Join(s.IDs, "-")
 
 	return fmt.Sprintf("%s,%s,%s", message.SendMsg, ids, s.Body)
 }
@@ -69,8 +65,7 @@ func Unmarshal(req string) Request {
 	case message.ListClientIDs:
 		return List{}
 	case message.SendMsg:
-		recipientIDs := strings.TrimSuffix(arr[1], "-")
-		recipientArr := strings.Split(recipientIDs, "-")
+		recipientArr := strings.Split(arr[1], "-")
 
 		return Send{
 			IDs:  recipientArr,

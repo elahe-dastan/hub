@@ -1,61 +1,29 @@
 package config
 
 import (
-	"bytes"
 	"log"
-	"strings"
 
-	"github.com/spf13/viper"
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/providers/structs"
+	"github.com/sirupsen/logrus"
 )
 
 type ServerConfig struct {
-	Address string `mapstructure:"address"`
+	Address string `konaf:"address"`
 }
 
-//// Global koanf instance. Use . as the key path delimiter. This can be / or anything.
-//var k = koanf.New(".")
-//
-//func ReadServer() ServerConfig {
-//	// Load JSON config.
-//	if err := k.Load(file.Provider("./serverConf.yml"), yaml.Parser()); err != nil {
-//		log.Fatalf("error loading config: %v", err)
-//	}
-//
-//	var out ServerConfig
-//
-//	// Quick unmarshal.
-//	k.Unmarshal("parent1.child1", &out)
-//	fmt.Println(out)
-//
-//	// Unmarshal with advanced config.
-//	//out = childStruct{}
-//	//k.UnmarshalWithConf("parent1.child1", &out, koanf.UnmarshalConf{Tag: "koanf"})
-//	//fmt.Println(out)
-//	return out
-//}
-
 func ReadServer() ServerConfig {
-	viper.AddConfigPath(".")
-	viper.SetConfigType("yml")
-
-	if err := viper.ReadConfig(bytes.NewBufferString(ServerDefault)); err != nil {
-		log.Fatalf("err: %s", err)
+	// Global koanf instance. Use . as the key path delimiter. This can be / or anything.
+	var k = koanf.New(".")
+	// Load default configuration from file
+	if err := k.Load(structs.Provider(ServerDefault(), "konaf"), nil); err != nil {
+		log.Fatalf("error loading config: %v", err)
 	}
 
-	viper.SetConfigName("config")
+	var out ServerConfig
 
-	if err := viper.MergeInConfig(); err != nil {
-		log.Print("No config file found")
+	if err := k.Unmarshal("", &out); err != nil {
+		logrus.Fatalf("error unmarshalling config: %s", err)
 	}
-
-	viper.SetEnvPrefix("applifier")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-	viper.AutomaticEnv()
-
-	var cfg ServerConfig
-	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatalf("err: %s", err)
-	}
-
-	return cfg
+	return out
 }

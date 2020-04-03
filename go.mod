@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/knadh/koanf v0.8.2 // indirect
+	github.com/knadh/koanf v0.8.2
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/pelletier/go-toml v1.6.0 // indirect
