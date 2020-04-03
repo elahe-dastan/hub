@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/c-bata/go-prompt"
-	"github.com/elahe-dastan/applifier/message"
 	"github.com/elahe-dastan/applifier/request"
+	"github.com/elahe-dastan/applifier/response"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -73,7 +73,7 @@ func (cli *Client) Close() {
 
 // Fetch the ID from the server
 func (cli *Client) WhoAmI() {
-	cli.flushBuffer((&request.Who{}).Marshal())
+	cli.flushBuffer(request.Who{}.Marshal())
 
 	m := <-cli.Who
 
@@ -82,7 +82,7 @@ func (cli *Client) WhoAmI() {
 
 // Fetch the IDs of the clients currently connected to the server
 func (cli *Client) ListClientIDs() {
-	cli.flushBuffer((&request.List{}).Marshal())
+	cli.flushBuffer(request.List{}.Marshal())
 
 	m := <-cli.List
 
@@ -134,14 +134,18 @@ func (cli *Client) HandleIncomingMessages() {
 			log.Error(err)
 		}
 
-		arr := strings.Split(m, ",")
-		switch arr[0] {
-		case message.WhoAmI:
-			cli.Who <- arr[1]
-		case message.ListClientIDs:
-			cli.List <- arr[1]
-		case message.SendMsg:
-			cli.Incoming <- arr[1]
+		s := response.Unmarshal(m)
+
+		switch s.(type) {
+		case response.Who:
+			w := s.(response.Who)
+			cli.Who <- w.ID
+		case response.List:
+			l := s.(response.List)
+			cli.List <- l.ConcatedIds
+		case response.Send:
+			se := s.(response.Send)
+			cli.Incoming <- se.Body
 		}
 	}
 }

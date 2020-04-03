@@ -2,9 +2,21 @@ package request
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/elahe-dastan/applifier/message"
 )
+
+type Request interface {
+	Marshal() string
+}
+
+type Stop struct {
+}
+
+func (s Stop) Marshal() string {
+	panic("implement me")
+}
 
 type Who struct {
 }
@@ -17,14 +29,14 @@ type Send struct {
 	Body string
 }
 
-func (w *Who) Marshal() string {
+func (w Who) Marshal() string {
 	return fmt.Sprintf("%s\n", message.WhoAmI)
 }
 
 //func (w *Who) Unmarshal(string) error {
 //}
 
-func (l *List) Marshal() string {
+func (l List) Marshal() string {
 	return fmt.Sprintf("%s\n", message.ListClientIDs)
 }
 
@@ -32,7 +44,7 @@ func (l *List) Marshal() string {
 //}
 
 // Body has "\n" itself so there is no need to add it
-func (s *Send) Marshal() string {
+func (s Send) Marshal() string {
 	ids := ""
 
 	for _, id := range s.IDs {
@@ -44,3 +56,27 @@ func (s *Send) Marshal() string {
 
 //func (s *Send) Unmarshal(string) error {
 //}
+
+func Unmarshal(req string) Request {
+	arr := strings.Split(req, ",")
+	t := strings.TrimSpace(arr[0])
+
+	switch t {
+	case message.STOP:
+		return Stop{}
+	case message.WhoAmI:
+		return Who{}
+	case message.ListClientIDs:
+		return List{}
+	case message.SendMsg:
+		recipientIDs := strings.TrimSuffix(arr[1], "-")
+		recipientArr := strings.Split(recipientIDs, "-")
+
+		return Send{
+			IDs:  recipientArr,
+			Body: strings.Join(arr[2:], ","),
+		}
+	}
+
+	return nil
+}

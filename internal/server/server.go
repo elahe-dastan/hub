@@ -6,10 +6,9 @@ import (
 	"io"
 	"net"
 	"strconv"
-	"strings"
 
 	"github.com/elahe-dastan/applifier/config"
-	"github.com/elahe-dastan/applifier/message"
+	"github.com/elahe-dastan/applifier/request"
 	"github.com/elahe-dastan/applifier/response"
 	log "github.com/sirupsen/logrus"
 )
@@ -165,14 +164,11 @@ func disconnect(l io.Closer) {
 	}
 }
 
-func (server *Server) destCli(recipientIDs string) []net.Conn {
-	recipientIDs = strings.TrimSuffix(recipientIDs, "-")
-	recipientArr := strings.Split(recipientIDs, "-")
-
+func (server *Server) destCli(recipientIDs []string) []net.Conn {
 	recipientConn := make([]net.Conn, 0)
 
 	for k, v := range server.conn {
-		for _, r := range recipientArr {
+		for _, r := range recipientIDs {
 			if v == r {
 				recipientConn = append(recipientConn, k)
 			}
@@ -196,14 +192,13 @@ func (server *Server) broadcast(recipients []net.Conn, res string) {
 }
 
 func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
-	arr := strings.Split(data, ",")
-	t := strings.TrimSpace(arr[0])
+	s := request.Unmarshal(data)
 
 	des := make([]net.Conn, 0)
 	res := ""
 
-	switch t {
-	case message.STOP:
+	switch s.(type) {
+	case request.Stop:
 		des = append(des, c)
 
 		if err := server.Stop(); err != nil {
@@ -211,19 +206,20 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 		} else {
 			res = "Server stopped"
 		}
-	case message.WhoAmI:
+	case request.Who:
 		des = append(des, c)
 		r := response.Who{ID: server.conn[c]}
-		res = r.Marshal()
-	case message.ListClientIDs:
+		res = r.MarshalRes()
+	case request.List:
 		des = append(des, c)
 		r := response.List{IDs: []string{}}
 		server.ListClientIDs(c, &r)
-		res = r.Marshal()
-	case message.SendMsg:
-		des = server.destCli(arr[1])
-		r := response.Send{Body: strings.Join(arr[2:], ",")}
-		res = r.Marshal()
+		res = r.MarshalRes()
+	case request.Send:
+		se := s.(request.Send)
+		des = server.destCli(se.IDs)
+		r := response.Send{Body: se.Body}
+		res = r.MarshalRes()
 	}
 
 	return des, res

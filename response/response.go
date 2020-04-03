@@ -2,30 +2,41 @@ package response
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/elahe-dastan/applifier/message"
 )
+
+type Response interface {
+	MarshalRes() string
+}
+
+type Stop struct {
+}
 
 type Who struct {
 	ID string
 }
 
 type List struct {
-	IDs []string
+	IDs         []string
+	ConcatedIds string
 }
 
 type Send struct {
 	Body string
 }
 
-func (w *Who) Marshal() string {
+func (w Who) MarshalRes() string {
 	return fmt.Sprintf("%s,%s\n", message.WhoAmI, w.ID)
 }
 
-//func (w *Who) Unmarshal(string) error {
-//}
+func (w Who) Unmarshal(id string) Who {
+	w.ID = id
+	return w
+}
 
-func (l *List) Marshal() string {
+func (l List) MarshalRes() string {
 	ids := ""
 
 	for _, id := range l.IDs {
@@ -34,13 +45,33 @@ func (l *List) Marshal() string {
 	return fmt.Sprintf("%s,%s\n", message.ListClientIDs, ids)
 }
 
-//func (l *List) Unmarshal(string) error {
-//}
+func (l List) Unmarshal(ids string) List {
+	l.ConcatedIds = ids
+	return l
+}
 
 // Body has "\n" itself so there is no need to add it
-func (s *Send) Marshal() string {
+func (s Send) MarshalRes() string {
 	return fmt.Sprintf("%s,%s", message.SendMsg, s.Body)
 }
 
-//func (s *Send) Unmarshal(string) error {
-//}
+func (s Send) Unmarshal(body string) Send {
+	s.Body = body
+	return s
+}
+
+func Unmarshal(res string) Response {
+	arr := strings.Split(res, ",")
+	t := arr[0]
+
+	switch t {
+	case message.WhoAmI:
+		return Who{}.Unmarshal(arr[1])
+	case message.ListClientIDs:
+		return List{}.Unmarshal(arr[1])
+	case message.SendMsg:
+		return Send{}.Unmarshal(strings.Join(arr[1:], ","))
+	}
+
+	return nil
+}
