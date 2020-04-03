@@ -26,6 +26,10 @@ type Send struct {
 	Body string
 }
 
+func (s Stop) MarshalRes() string {
+	return fmt.Sprintf("%s", message.STOP)
+}
+
 func (w Who) MarshalRes() string {
 	return fmt.Sprintf("%s,%s\n", message.WhoAmI, w.ID)
 }

@@ -69,6 +69,12 @@ func (cli *Client) Close() {
 	fmt.Println("TCP client exiting...")
 
 	cli.flushBuffer("STOP\n")
+
+	if err := cli.conn.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	os.Exit(0)
 }
 
 // Fetch the ID from the server

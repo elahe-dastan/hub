@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/elahe-dastan/applifier/config"
+	"github.com/elahe-dastan/applifier/message"
 	"github.com/elahe-dastan/applifier/request"
 	"github.com/elahe-dastan/applifier/response"
 	log "github.com/sirupsen/logrus"
@@ -119,6 +120,10 @@ func (server *Server) handleConnection(c net.Conn) {
 
 		dest, res := server.response(netData, c)
 
+		if res == message.STOP {
+			break
+		}
+
 		server.broadcast(dest, res)
 	}
 }
@@ -204,13 +209,8 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 
 	switch s.(type) {
 	case request.Stop:
-		des = append(des, c)
-
-		if err := server.Stop(); err != nil {
-			res = err.Error()
-		} else {
-			res = "Server stopped"
-		}
+		delete(server.conn, c)
+		res = response.Stop{}.MarshalRes()
 	case request.Who:
 		des = append(des, c)
 		r := response.Who{ID: server.conn[c]}
