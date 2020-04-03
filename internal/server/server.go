@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/elahe-dastan/applifier/config"
 	"github.com/elahe-dastan/applifier/request"
@@ -125,15 +126,19 @@ func (server *Server) handleConnection(c net.Conn) {
 // Return the IDs of the connected clients except the client asking for this
 func (server *Server) ListClientIDs(c net.Conn, r *response.List) {
 	if len(server.conn) == 1 {
-		r.IDs = append(r.IDs, "No other client connected")
+		r.ConcatedIds = "No other client connected"
 		return
 	}
 
+	var ids []string
+
 	for _, id := range server.conn {
 		if id != server.conn[c] {
-			r.IDs = append(r.IDs, id)
+			ids = append(ids, id)
 		}
 	}
+
+	r.ConcatedIds = strings.Join(ids, "-")
 }
 
 // Stop accepting connections and close the existing ones
@@ -212,7 +217,7 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 		res = r.MarshalRes()
 	case request.List:
 		des = append(des, c)
-		r := response.List{IDs: []string{}}
+		r := response.List{}
 		server.ListClientIDs(c, &r)
 		res = r.MarshalRes()
 	case request.Send:

@@ -19,7 +19,6 @@ type Who struct {
 }
 
 type List struct {
-	IDs         []string
 	ConcatedIds string
 }
 
@@ -37,12 +36,7 @@ func (w Who) Unmarshal(id string) Who {
 }
 
 func (l List) MarshalRes() string {
-	ids := ""
-
-	for _, id := range l.IDs {
-		ids = ids + id + "-"
-	}
-	return fmt.Sprintf("%s,%s\n", message.ListClientIDs, ids)
+	return fmt.Sprintf("%s,%s\n", message.ListClientIDs, l.ConcatedIds)
 }
 
 func (l List) Unmarshal(ids string) List {

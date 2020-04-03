@@ -19,9 +19,9 @@ type Client struct {
 	reader   *bufio.Reader
 	writer   *bufio.Writer
 	console  *bufio.Reader
-	Who      chan string
-	List     chan string
-	Incoming chan string
+	Who      chan response.Who
+	List     chan response.List
+	Incoming chan response.Send
 }
 
 func New() *Client {
@@ -33,9 +33,9 @@ func New() *Client {
 	log.SetFormatter(Formatter)
 
 	return &Client{
-		Who:      make(chan string, bufferSize),
-		List:     make(chan string, bufferSize),
-		Incoming: make(chan string, bufferSize),
+		Who:      make(chan response.Who, bufferSize),
+		List:     make(chan response.List, bufferSize),
+		Incoming: make(chan response.Send, bufferSize),
 	}
 }
 
@@ -58,7 +58,7 @@ func (cli *Client) Connect(serverAddr string) error {
 	go cli.HandleIncomingMessages()
 	go cli.privateMessage()
 
-	p := prompt.New(cli.sendReq, completer)
+	p := prompt.New(cli.sendReq, completer, prompt.OptionPrefix("applifier> "))
 	p.Run()
 
 	return nil
@@ -77,16 +77,17 @@ func (cli *Client) WhoAmI() {
 
 	m := <-cli.Who
 
-	fmt.Print("->: " + m)
+	fmt.Print("->: " + m.ID)
 }
 
 // Fetch the IDs of the clients currently connected to the server
 func (cli *Client) ListClientIDs() {
 	cli.flushBuffer(request.List{}.Marshal())
 
-	m := <-cli.List
+	l := <-cli.List
+	m := l.ConcatedIds
 
-	m = strings.TrimSuffix(m, "-\n")
+	m = strings.TrimSuffix(m, "\n")
 	IDs := strings.Split(m, "-")
 
 	for _, id := range IDs {
@@ -139,13 +140,13 @@ func (cli *Client) HandleIncomingMessages() {
 		switch s.(type) {
 		case response.Who:
 			w := s.(response.Who)
-			cli.Who <- w.ID
+			cli.Who <- w
 		case response.List:
 			l := s.(response.List)
-			cli.List <- l.ConcatedIds
+			cli.List <- l
 		case response.Send:
 			se := s.(response.Send)
-			cli.Incoming <- se.Body
+			cli.Incoming <- se
 		}
 	}
 }
@@ -178,7 +179,10 @@ func (cli Client) flushBuffer(m string) {
 }
 
 func (cli Client) privateMessage() {
-	fmt.Print(<-cli.Incoming)
+	for {
+		s := <-cli.Incoming
+		fmt.Print(s.Body)
+	}
 }
 
 func completer(d prompt.Document) []prompt.Suggest {
