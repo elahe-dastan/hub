@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/c-bata/go-prompt"
 	"github.com/elahe-dastan/applifier/message"
 	"github.com/elahe-dastan/applifier/request"
 	log "github.com/sirupsen/logrus"
@@ -57,14 +58,10 @@ func (cli *Client) Connect(serverAddr string) error {
 	go cli.HandleIncomingMessages()
 	go cli.privateMessage()
 
-	for {
-		fmt.Print(">> ")
+	p := prompt.New(cli.sendReq, completer)
+	p.Run()
 
-		req, _ := cli.console.ReadString('\n')
-		req = strings.TrimSpace(req)
-
-		cli.sendReq(req)
-	}
+	return nil
 }
 
 // Close the connection to the server
@@ -178,4 +175,15 @@ func (cli Client) flushBuffer(m string) {
 
 func (cli Client) privateMessage() {
 	fmt.Print(<-cli.Incoming)
+}
+
+func completer(d prompt.Document) []prompt.Suggest {
+	s := []prompt.Suggest{
+		{Text: "STOP", Description: "Closes the connection"},
+		{Text: "Who", Description: "Returns the ID"},
+		{Text: "List", Description: "Returns the IDs of other clients"},
+		{Text: "Send", Description: "Send a message"},
+	}
+
+	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
 }
