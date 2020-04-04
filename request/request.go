@@ -58,7 +58,7 @@ func Unmarshal(req string) Request {
 	t := strings.TrimSpace(arr[0])
 
 	switch t {
-	case message.STOP:
+	case message.Stop:
 		return Stop{}
 	case message.WhoAmI:
 		return Who{}

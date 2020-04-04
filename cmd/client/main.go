@@ -14,9 +14,13 @@ func Register(root *cobra.Command) {
 		Short: "Runs the client",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Hello from client")
+
 			cli := client.New()
-			//c := config.ReadClient()
-			a, _ := cmd.Flags().GetString("server")
+
+			a, err := cmd.Flags().GetString("server")
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			if err := cli.Connect(a); err != nil {
 				log.Fatal(err)
