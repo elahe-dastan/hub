@@ -115,7 +115,8 @@ func (server *Server) handleConnection(c net.Conn) {
 		netData, err := r.ReadString('\n')
 		if err != nil {
 			log.Error(err)
-			return
+			delete(server.conn, c)
+			break
 		}
 
 		dest, res := server.response(netData, c)
@@ -210,21 +211,21 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 	switch s.(type) {
 	case request.Stop:
 		delete(server.conn, c)
-		res = response.Stop{}.MarshalRes()
+		res = response.Stop{}.Marshal()
 	case request.Who:
 		des = append(des, c)
 		r := response.Who{ID: server.conn[c]}
-		res = r.MarshalRes()
+		res = r.Marshal()
 	case request.List:
 		des = append(des, c)
 		r := response.List{}
 		server.ListClientIDs(c, &r)
-		res = r.MarshalRes()
+		res = r.Marshal()
 	case request.Send:
 		se := s.(request.Send)
 		des = server.destCli(se.IDs)
 		r := response.Send{Body: se.Body}
-		res = r.MarshalRes()
+		res = r.Marshal()
 	}
 
 	return des, res

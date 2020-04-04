@@ -169,6 +169,8 @@ func (cli *Client) sendReq(req string) {
 		cli.ListClientIDs()
 	case "Send":
 		cli.SendMsg()
+	default:
+		fmt.Println("Command not found")
 	}
 }
 

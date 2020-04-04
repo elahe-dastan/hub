@@ -8,7 +8,8 @@ import (
 )
 
 type Response interface {
-	MarshalRes() string
+	Marshal() string
+	Unmarshal(string)
 }
 
 type Stop struct {
@@ -26,36 +27,37 @@ type Send struct {
 	Body string
 }
 
-func (s Stop) MarshalRes() string {
+func (s Stop) Marshal() string {
 	return fmt.Sprintf("%s", message.STOP)
 }
 
-func (w Who) MarshalRes() string {
+//func (s Stop) Unmarshal() {
+//	return fmt.Sprintf("%s", message.STOP)
+//}
+
+func (w *Who) Marshal() string {
 	return fmt.Sprintf("%s,%s\n", message.WhoAmI, w.ID)
 }
 
-func (w Who) Unmarshal(id string) Who {
+func (w *Who) Unmarshal(id string) {
 	w.ID = id
-	return w
 }
 
-func (l List) MarshalRes() string {
+func (l *List) Marshal() string {
 	return fmt.Sprintf("%s,%s\n", message.ListClientIDs, l.ConcatedIds)
 }
 
-func (l List) Unmarshal(ids string) List {
+func (l *List) Unmarshal(ids string) {
 	l.ConcatedIds = ids
-	return l
 }
 
 // Body has "\n" itself so there is no need to add it
-func (s Send) MarshalRes() string {
+func (s *Send) Marshal() string {
 	return fmt.Sprintf("%s,%s", message.SendMsg, s.Body)
 }
 
-func (s Send) Unmarshal(body string) Send {
+func (s *Send) Unmarshal(body string) {
 	s.Body = body
-	return s
 }
 
 func Unmarshal(res string) Response {
@@ -64,11 +66,17 @@ func Unmarshal(res string) Response {
 
 	switch t {
 	case message.WhoAmI:
-		return Who{}.Unmarshal(arr[1])
+		w := &Who{}
+		w.Unmarshal(arr[1])
+		return w
 	case message.ListClientIDs:
-		return List{}.Unmarshal(arr[1])
+		l := &List{}
+		l.Unmarshal(arr[1])
+		return l
 	case message.SendMsg:
-		return Send{}.Unmarshal(strings.Join(arr[1:], ","))
+		s := &Send{}
+		s.Unmarshal(strings.Join(arr[1:], ","))
+		return s
 	}
 
 	return nil
