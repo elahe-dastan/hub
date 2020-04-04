@@ -36,7 +36,7 @@ func New() *Server {
 }
 
 // Start handling client connections and messages
-func (server *Server) Start(c config.ServerConfig) error {
+func (server *Server) Start(c config.Config) error {
 	server.running = 1
 
 	l, err := net.Listen("tcp4", c.Address)
@@ -71,35 +71,6 @@ func (server *Server) Start(c config.ServerConfig) error {
 	}
 }
 
-//func handleConnection1(conn net.Conn) {
-//	// read buffer from client after enter is hit
-//	bufferBytes, err := bufio.NewReader(conn).ReadBytes('\n')
-//
-//	if err != nil {
-//		log.Println("client left..")
-//		conn.Close()
-//
-//		// escape recursion
-//		return
-//	}
-//
-//	// convert bytes from buffer to string
-//	message := string(bufferBytes)
-//	// get the remote address of the client
-//	clientAddr := conn.RemoteAddr().String()
-//	// format a response
-//	response := fmt.Sprintf(message + " from " + clientAddr + "\n")
-//
-//	// have server print out important information
-//	log.Println(response)
-//
-//	// let the client know what happened
-//	conn.Write([]byte("you sent: " + response))
-//
-//	// recursive func to handle io.EOF for random disconnects
-//	handleConnection1(conn)
-//}
-
 func (server *Server) handleConnWorker(tasks <-chan net.Conn) {
 	for c := range tasks {
 		server.handleConnection(c)
@@ -122,7 +93,7 @@ func (server *Server) handleConnection(c net.Conn) {
 
 		dest, res := server.response(netData, c)
 
-		if res == message.STOP {
+		if res == message.Stop {
 			return
 		}
 
@@ -207,17 +178,17 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 	s := request.Unmarshal(data)
 
 	des := make([]net.Conn, 0)
-	res := ""
+
 	var r response.Response
 
 	switch re := s.(type) {
 	case request.Stop:
 		delete(server.conn, c)
+
 		r = response.Stop{}
 	case request.Who:
 		des = append(des, c)
 		r = &response.Who{ID: server.conn[c]}
-		res = r.Marshal()
 	case request.List:
 		des = append(des, c)
 		l := &response.List{}
@@ -228,10 +199,7 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 		r = &response.Send{Body: re.Body}
 	default:
 		return nil, ""
-
 	}
 
-	res = r.Marshal()
-
-	return des, res
+	return des, r.Marshal()
 }

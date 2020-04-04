@@ -28,7 +28,7 @@ type Send struct {
 }
 
 func (s Stop) Marshal() string {
-	return message.STOP
+	return message.Stop
 }
 
 func (s Stop) Unmarshal(st string) {
@@ -63,6 +63,7 @@ func (s *Send) Unmarshal(body string) {
 func Unmarshal(res string) Response {
 	arr := strings.Split(res, ",")
 	t := arr[0]
+
 	var r Response
 
 	switch t {
