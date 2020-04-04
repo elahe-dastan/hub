@@ -17,7 +17,7 @@ func Register(root *cobra.Command) {
 			Run: func(cmd *cobra.Command, args []string) {
 				fmt.Println("Hello from server")
 				s := server.New()
-				c := config.ReadServer()
+				c := config.Read()
 
 				if err := s.Start(c); err != nil {
 					log.Println(err)

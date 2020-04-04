@@ -12,15 +12,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type ServerConfig struct {
+type Config struct {
 	Address string `konaf:"address"`
 }
 
-func ReadServer() ServerConfig {
+func Read() Config {
 	// Global koanf instance. Use . as the key path delimiter. This can be / or anything.
 	var k = koanf.New(".")
 	// Load default configuration from struct
-	if err := k.Load(structs.Provider(ServerDefault(), "konaf"), nil); err != nil {
+	if err := k.Load(structs.Provider(Default(), "konaf"), nil); err != nil {
 		log.Fatalf("error loading config: %v", err)
 	}
 	// Load configuration from file
@@ -39,10 +39,11 @@ func ReadServer() ServerConfig {
 		log.Println("No env variable provided")
 	}
 
-	var out ServerConfig
+	var out Config
 
 	if err := k.Unmarshal("", &out); err != nil {
 		logrus.Fatalf("error unmarshalling config: %s", err)
 	}
+
 	return out
 }

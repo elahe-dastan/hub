@@ -1,5 +1,5 @@
 package config
 
-func ServerDefault() ServerConfig {
-	return ServerConfig{Address: ":8080"}
+func Default() Config {
+	return Config{Address: ":8080"}
 }
