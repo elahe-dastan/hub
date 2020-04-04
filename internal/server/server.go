@@ -116,13 +116,14 @@ func (server *Server) handleConnection(c net.Conn) {
 		if err != nil {
 			log.Error(err)
 			delete(server.conn, c)
-			break
+
+			return
 		}
 
 		dest, res := server.response(netData, c)
 
 		if res == message.STOP {
-			break
+			return
 		}
 
 		server.broadcast(dest, res)
@@ -207,26 +208,30 @@ func (server *Server) response(data string, c net.Conn) ([]net.Conn, string) {
 
 	des := make([]net.Conn, 0)
 	res := ""
+	var r response.Response
 
-	switch s.(type) {
+	switch re := s.(type) {
 	case request.Stop:
 		delete(server.conn, c)
-		res = response.Stop{}.Marshal()
+		r = response.Stop{}
 	case request.Who:
 		des = append(des, c)
-		r := response.Who{ID: server.conn[c]}
+		r = &response.Who{ID: server.conn[c]}
 		res = r.Marshal()
 	case request.List:
 		des = append(des, c)
-		r := response.List{}
-		server.ListClientIDs(c, &r)
-		res = r.Marshal()
+		l := &response.List{}
+		server.ListClientIDs(c, l)
+		r = l
 	case request.Send:
-		se := s.(request.Send)
-		des = server.destCli(se.IDs)
-		r := response.Send{Body: se.Body}
-		res = r.Marshal()
+		des = server.destCli(re.IDs)
+		r = &response.Send{Body: re.Body}
+	default:
+		return nil, ""
+
 	}
+
+	res = r.Marshal()
 
 	return des, res
 }

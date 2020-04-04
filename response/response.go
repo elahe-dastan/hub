@@ -28,12 +28,12 @@ type Send struct {
 }
 
 func (s Stop) Marshal() string {
-	return fmt.Sprintf("%s", message.STOP)
+	return message.STOP
 }
 
-//func (s Stop) Unmarshal() {
-//	return fmt.Sprintf("%s", message.STOP)
-//}
+func (s Stop) Unmarshal(st string) {
+
+}
 
 func (w *Who) Marshal() string {
 	return fmt.Sprintf("%s,%s\n", message.WhoAmI, w.ID)
@@ -63,21 +63,19 @@ func (s *Send) Unmarshal(body string) {
 func Unmarshal(res string) Response {
 	arr := strings.Split(res, ",")
 	t := arr[0]
+	var r Response
 
 	switch t {
 	case message.WhoAmI:
-		w := &Who{}
-		w.Unmarshal(arr[1])
-		return w
+		r = &Who{}
+		r.Unmarshal(arr[1])
 	case message.ListClientIDs:
-		l := &List{}
-		l.Unmarshal(arr[1])
-		return l
+		r = &List{}
+		r.Unmarshal(arr[1])
 	case message.SendMsg:
-		s := &Send{}
-		s.Unmarshal(strings.Join(arr[1:], ","))
-		return s
+		r = &Send{}
+		r.Unmarshal(strings.Join(arr[1:], ","))
 	}
 
-	return nil
+	return r
 }
