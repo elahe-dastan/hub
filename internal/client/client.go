@@ -144,15 +144,15 @@ func (cli *Client) HandleIncomingMessages() {
 		s := response.Unmarshal(m)
 
 		switch s.(type) {
-		case response.Who:
-			w := s.(response.Who)
-			cli.Who <- w
-		case response.List:
-			l := s.(response.List)
-			cli.List <- l
-		case response.Send:
-			se := s.(response.Send)
-			cli.Incoming <- se
+		case *response.Who:
+			w := s.(*response.Who)
+			cli.Who <- *w
+		case *response.List:
+			l := s.(*response.List)
+			cli.List <- *l
+		case *response.Send:
+			se := s.(*response.Send)
+			cli.Incoming <- *se
 		}
 	}
 }
