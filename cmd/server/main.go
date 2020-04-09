@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/elahe-dastan/applifier/config"
-	"github.com/elahe-dastan/applifier/internal/server"
+	"github.com/elahe-dastan/hub/config"
+	"github.com/elahe-dastan/hub/internal/server"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/elahe-dastan/applifier/message"
+	"github.com/elahe-dastan/hub/message"
 )
 
 type Request interface {

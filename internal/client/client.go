@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/c-bata/go-prompt"
-	"github.com/elahe-dastan/applifier/request"
-	"github.com/elahe-dastan/applifier/response"
+	"github.com/elahe-dastan/hub/request"
+	"github.com/elahe-dastan/hub/response"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,7 +58,7 @@ func (cli *Client) Connect(serverAddr string) error {
 	go cli.HandleIncomingMessages()
 	go cli.privateMessage()
 
-	p := prompt.New(cli.sendReq, completer, prompt.OptionPrefix("applifier> "))
+	p := prompt.New(cli.sendReq, completer, prompt.OptionPrefix("hub> "))
 	p.Run()
 
 	return nil

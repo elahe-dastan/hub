@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/elahe-dastan/applifier/config"
-	"github.com/elahe-dastan/applifier/message"
-	"github.com/elahe-dastan/applifier/request"
-	"github.com/elahe-dastan/applifier/response"
+	"github.com/elahe-dastan/hub/config"
+	"github.com/elahe-dastan/hub/message"
+	"github.com/elahe-dastan/hub/request"
+	"github.com/elahe-dastan/hub/response"
 	log "github.com/sirupsen/logrus"
 )
 

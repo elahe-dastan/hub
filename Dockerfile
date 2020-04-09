@@ -18,4 +18,4 @@ WORKDIR /root/
 
 COPY --from=builder /applifier .
 
-ENTRYPOINT ["./applifier"]
+ENTRYPOINT ["./hub"]

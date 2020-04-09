@@ -3,9 +3,9 @@ package test
 import (
 	"testing"
 
-	"github.com/elahe-dastan/applifier/config"
-	"github.com/elahe-dastan/applifier/internal/client"
-	"github.com/elahe-dastan/applifier/internal/server"
+	"github.com/elahe-dastan/hub/config"
+	"github.com/elahe-dastan/hub/internal/client"
+	"github.com/elahe-dastan/hub/internal/server"
 	"github.com/stretchr/testify/require"
 )
 

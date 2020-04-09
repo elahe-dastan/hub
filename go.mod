@@ -1,4 +1,4 @@
-module github.com/elahe-dastan/applifier
+module github.com/elahe-dastan/hub
 
 go 1.13
 

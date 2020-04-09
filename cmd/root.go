@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/elahe-dastan/applifier/cmd/client"
-	"github.com/elahe-dastan/applifier/cmd/server"
+	"github.com/elahe-dastan/hub/cmd/client"
+	"github.com/elahe-dastan/hub/cmd/server"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ import (
 func Execute() {
 	// rootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
-		Use:   "applifier",
+		Use:   "hub",
 		Short: "Message deliver",
 	}
 
