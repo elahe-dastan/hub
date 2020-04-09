@@ -5,8 +5,6 @@
 ## Protocol
 Server and client can talk to each other using the following set of rules:<br/>
 
-Colons can be used to align columns.
-
 | Client              | Server           | Example                                                          |
 | ------------------- |:-----------------| -----------------------------------------------------------------|
 | WhoAmI              | WhoAmI,id        | client:"WhoAmI"<br/>server:"WhoAmI,1                             |
