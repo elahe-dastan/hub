@@ -1,6 +1,6 @@
 # Hub
 
-[![Build Status](https://cloud.drone.io/api/badges/elahe-dastan/applifier/status.svg)](https://cloud.drone.io/elahe-dastan/applifier)
+[![Build Status](https://cloud.drone.io/api/badges/elahe-dastan/hub/status.svg)](https://cloud.drone.io/elahe-dastan/hub)
 
 ## Protocol
 Server and client can talk to each other using the following set of rules:<br/>
